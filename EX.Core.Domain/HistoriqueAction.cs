@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,7 +18,9 @@ namespace EX.Core.Domain
 
         //les relations
 
-        public virtual User User { get; set; }
 
+        [ForeignKey("UserId")] 
+        public virtual User User { get; set; }
+        public int UserId { get; set; }
     }
 }
