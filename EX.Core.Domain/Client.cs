@@ -14,7 +14,6 @@ namespace EX.Core.Domain
         public string Sales { get; set; }
 
         public virtual IList<RFQ> RFQs { get; set; }
-        public virtual IList<VersionRFQ> VRFQs { get; set; }
 
 
     }
