@@ -9,44 +9,47 @@ namespace EX.Core.Services
 {
     public class Service<T> : IService<T> where T : class
     {
-        protected readonly IUnitOfWork uow;
-        IRepository<T> repo;
+        protected readonly IUnitOfWork _uow;
+        private readonly IRepository<T> _repo;
+
         public Service(IUnitOfWork uow)
         {
-            this.uow = uow;
-            repo = uow.GetRepository<T>();
+            _uow = uow;
+            _repo = _uow.GetRepository<T>();
         }
+
         public void Add(T entity)
         {
-            repo.Add(entity);
-            uow.Save();
+            _repo.Add(entity);
+            _uow.Save();
         }
 
         public void Delete(T entity)
         {
-            repo.Delete(entity);
-            uow.Save();
+            _repo.Delete(entity);
+            _uow.Save();
         }
 
         public T? Get(int id)
         {
-            return repo.Get(id);
+            return _repo.Get(id);
         }
 
         public T? Get(string id)
         {
-            return repo.Get(id);
+            return _repo.Get(id);
         }
 
         public IList<T> GetAll()
         {
-            return repo.GetAll();
+            return _repo.GetAll();
         }
 
         public void Update(T entity)
         {
-            repo.Update(entity);
-            uow.Save();
+            _repo.Update(entity);
+            _uow.Save();
         }
     }
+
 }

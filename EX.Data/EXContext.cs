@@ -15,13 +15,10 @@ namespace EX.Data
         public DbSet<Commentaire> Commentaires { get; set; }
         public DbSet<Rapport> Rapports { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        public EXContext(DbContextOptions<EXContext> options) : base(options)
         {
-            optionsBuilder.UseSqlServer(@"Data Source=(localdb)\mssqllocaldb;
-                                        Initial Catalog = GestionRFQ; 
-                                        Integrated Security = true");
-            optionsBuilder.UseLazyLoadingProxies(true); 
         }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // RFQ -> IngenieurRFQ

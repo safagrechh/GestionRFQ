@@ -9,26 +9,27 @@ namespace EX.Data
 {
     public class UnitOfWork : IUnitOfWork
     {
-        readonly EXContext context;
+        private readonly EXContext _context;
 
         public UnitOfWork(EXContext context)
         {
-            this.context = context;
+            _context = context;
         }
 
         public void Dispose()
         {
-            context.Dispose();
+            _context.Dispose();
         }
 
         public IRepository<T> GetRepository<T>() where T : class
         {
-            return new Repository<T>(context);
+            return new Repository<T>(_context);
         }
 
         public void Save()
         {
-            context.SaveChanges();
+            _context.SaveChanges();
         }
     }
+
 }
