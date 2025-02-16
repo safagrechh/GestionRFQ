@@ -33,33 +33,33 @@ namespace EX.Core.Domain
         public Statut Statut { get; set; }
 
         //les relations
-        [ForeignKey("MaterialLeaderId")]
+        
         public virtual Worker MaterialLeader { get; set; }
-        public int MaterialLeaderId { get; set; }
+        public int? MaterialLeaderId { get; set; }
 
 
-        [ForeignKey("TestLeaderId")]
+        
         public virtual Worker TestLeader { get; set; }
-        public int TestLeaderId { get; set; }
+        public int? TestLeaderId { get; set; }
 
-        [ForeignKey("MarketSegmentId")]
+        
         public virtual MarketSegment MarketSegment { get; set; }
-        public int MarketSegmentId { get; set; }
+        public int? MarketSegmentId { get; set; }
 
-        [ForeignKey("RFQId")] 
         public virtual RFQ RFQ { get; set; }
         public int RFQId { get; set; }
+
         public virtual IList<Commentaire> Commentaires { get; set; }
 
-        [ForeignKey("IngenieurRFQId")]
+        
         public virtual User IngenieurRFQ { get; set; }
-        public int IngenieurRFQId { get; set; }
+        public int? IngenieurRFQId { get; set; }
 
-        [ForeignKey("ValidateurId")]
+      
         public virtual User Validateur { get; set; }
-        public int ValidateurId { get; set; }
+        public int? ValidateurId { get; set; }
     }
 
 
     } 
-}
+

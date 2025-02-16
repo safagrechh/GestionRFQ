@@ -16,7 +16,11 @@ namespace EX.Core.Domain
         [ForeignKey("ValidateurId")] 
         public virtual User Validateur { get; set; }
         public int ValidateurId { get; set; }
+
+
+        public int? RFQId { get; set; }
         public virtual RFQ RFQ { get; set; }
+        public int? VersionRFQId { get; set; }
         public virtual VersionRFQ VersionRFQ { get; set; }
     }
 }
