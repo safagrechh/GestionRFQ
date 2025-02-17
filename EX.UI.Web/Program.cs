@@ -4,11 +4,18 @@ using EX.Core.Services;
 using EX.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Ajout des services MVC
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // This handles circular references in objects like MaterialLeader, Worker, etc.
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.MaxDepth = 64; // Optional: Increase depth if necessary
+    });
 
 // Configuration de DbContext
 builder.Services.AddDbContext<EXContext>(options =>
