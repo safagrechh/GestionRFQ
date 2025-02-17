@@ -13,7 +13,7 @@ namespace EX.Core.Domain
         public string  Email { get; set; }
         public string Sales { get; set; }
 
-        public virtual IList<RFQ> RFQs { get; set; }
+        public virtual IList<RFQ>? RFQs { get; set; }
 
 
     }

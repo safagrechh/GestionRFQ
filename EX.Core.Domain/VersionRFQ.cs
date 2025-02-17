@@ -49,7 +49,7 @@ namespace EX.Core.Domain
         public virtual RFQ RFQ { get; set; }
         public int RFQId { get; set; }
 
-        public virtual IList<Commentaire> Commentaires { get; set; }
+        public virtual IList<Commentaire>? Commentaires { get; set; }
 
         
         public virtual User IngenieurRFQ { get; set; }

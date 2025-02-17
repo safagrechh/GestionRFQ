@@ -17,10 +17,10 @@ namespace EX.Core.Domain
 
         public RoleW Role { get; set; }
 
-        public virtual IList<VersionRFQ> VMaterialLeader { get; set; }
-        public virtual IList<VersionRFQ> VTestLeader { get; set; }
+        public virtual IList<VersionRFQ>? VMaterialLeader { get; set; }
+        public virtual IList<VersionRFQ>? VTestLeader { get; set; }
 
-        public virtual IList<RFQ> AsMaterialLeader { get; set; }
-        public virtual IList<RFQ> AsTestLeader { get; set; }
+        public virtual IList<RFQ>? AsMaterialLeader { get; set; }
+        public virtual IList<RFQ>? AsTestLeader { get; set; }
     }
 }
