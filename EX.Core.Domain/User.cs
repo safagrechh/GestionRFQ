@@ -22,15 +22,15 @@ namespace EX.Core.Domain
         public RoleU Role { get; set; }
         //les relations 
 
-        public virtual IList<Commentaire> Commentaires { get; set; }
-        public virtual IList<HistoriqueAction> HistoriqueActions { get; set; }
-        public virtual IList<Rapport> Rapports { get; set; }
+        public virtual IList<Commentaire>? Commentaires { get; set; }
+        public virtual IList<HistoriqueAction>? HistoriqueActions { get; set; }
+        public virtual IList<Rapport>? Rapports { get; set; }
 
-        public virtual IList<RFQ> RFQsEnTantQueIngenieur { get; set; }
-        public virtual IList<RFQ> RFQsEnTantQueValidateur { get; set; }
+        public virtual IList<RFQ>? RFQsEnTantQueIngenieur { get; set; }
+        public virtual IList<RFQ>? RFQsEnTantQueValidateur { get; set; }
 
-        public virtual IList<VersionRFQ> VersionRFQsEnTantQueIngenieur { get; set; }
-        public virtual IList<VersionRFQ> VersionRFQsEnTantQueValidateur { get; set; }
+        public virtual IList<VersionRFQ>? VersionRFQsEnTantQueIngenieur { get; set; }
+        public virtual IList<VersionRFQ>? VersionRFQsEnTantQueValidateur { get; set; }
 
 
 
