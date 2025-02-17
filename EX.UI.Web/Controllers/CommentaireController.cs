@@ -1,83 +1,145 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using EX.Core.Domain;
+using EX.Core.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EX.UI.Web.Controllers
 {
-    public class CommentaireController : Controller
+    [Route("api/[controller]")]
+    [ApiController] // Important for swagger
+    public class CommentaireController : ControllerBase
     {
-        // GET: CommentaireController
-        public ActionResult Index()
+        private readonly IService<Commentaire> _commentaireService;
+        private readonly IService<RFQ> _rfqService;
+        private readonly IService<VersionRFQ> _versionRFQService;
+        private readonly IService<User> _userService;
+
+        public CommentaireController(
+            IService<Commentaire> commentaireService,
+            IService<User> userService,
+            IService<RFQ> rfqService,
+            IService<VersionRFQ> versionRFQService)
         {
-            return View();
+            _commentaireService = commentaireService;
+            _userService = userService;
+            _rfqService = rfqService;
+            _versionRFQService = versionRFQService;
         }
 
-        // GET: CommentaireController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
-
-        // GET: CommentaireController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: CommentaireController/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public ActionResult<Commentaire> Create([FromBody] CreateCommentaireDto dto)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                return BadRequest(ModelState);
             }
-            catch
+
+            // Validation: Comment should be either on RFQ or VersionRFQ, but not both
+            if (dto.RFQId.HasValue && dto.VersionRFQId.HasValue)
             {
-                return View();
+                return BadRequest("A comment can only be associated with either an RFQ or a VersionRFQ, not both.");
             }
+
+            if (!dto.RFQId.HasValue && !dto.VersionRFQId.HasValue)
+            {
+                return BadRequest("A comment must be associated with either an RFQ or a VersionRFQ.");
+            }
+
+            // Validate Validateur
+            var validateur = _userService.Get(dto.ValidateurId);
+            if (validateur == null)
+            {
+                return NotFound("Validateur not found.");
+            }
+
+            // Validate RFQ or VersionRFQ existence
+            RFQ rfq = null;
+            VersionRFQ versionRFQ = null;
+
+            if (dto.RFQId.HasValue)
+            {
+                rfq = _rfqService.Get(dto.RFQId.Value);
+                if (rfq == null)
+                {
+                    return NotFound("RFQ not found.");
+                }
+            }
+
+            if (dto.VersionRFQId.HasValue)
+            {
+                versionRFQ = _versionRFQService.Get(dto.VersionRFQId.Value);
+                if (versionRFQ == null)
+                {
+                    return NotFound("Version RFQ not found.");
+                }
+            }
+
+            // Create Commentaire
+            var commentaire = new Commentaire
+            {
+                Contenu = dto.Contenu,
+                DateC = DateTime.UtcNow,
+                ValidateurId = dto.ValidateurId,
+                RFQId = dto.RFQId,
+                VersionRFQId = dto.VersionRFQId
+            };
+
+            _commentaireService.Add(commentaire);
+            return CreatedAtAction(nameof(Get), new { id = commentaire.Id }, commentaire);
         }
 
-        // GET: CommentaireController/Edit/5
-        public ActionResult Edit(int id)
+
+        [HttpGet("{id}")]
+        public ActionResult<Commentaire> Get(int id)
         {
-            return View();
+            var commentaire = _commentaireService.Get(id);
+            if (commentaire == null)
+            {
+                return NotFound();
+            }
+
+            return commentaire;
         }
 
-        // POST: CommentaireController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        [HttpPut("{id}")]
+        public ActionResult<Commentaire> Update(int id, [FromBody] UpdateCommentaireDto dto)
         {
-            try
+            var commentaire = _commentaireService.Get(id);
+            if (commentaire == null)
             {
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
-            catch
-            {
-                return View();
-            }
+
+            commentaire.Contenu = dto.Contenu ?? commentaire.Contenu;
+
+            _commentaireService.Update(commentaire);
+            return Ok(commentaire);
         }
 
-        // GET: CommentaireController/Delete/5
-        public ActionResult Delete(int id)
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
         {
-            return View();
-        }
+            var commentaire = _commentaireService.Get(id);
+            if (commentaire == null)
+            {
+                return NotFound();
+            }
 
-        // POST: CommentaireController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            _commentaireService.Delete(commentaire);
+            return NoContent();
         }
+    }
+
+    public class CreateCommentaireDto
+    {
+        public string Contenu { get; set; }
+        public int ValidateurId { get; set; } // Required
+        public int? RFQId { get; set; }        // Optional
+        public int? VersionRFQId { get; set; } // Optional
+    }
+
+    public class UpdateCommentaireDto
+    {
+        public string? Contenu { get; set; }
     }
 }

@@ -61,7 +61,7 @@ namespace EX.UI.Web.Controllers
                 LDDate = dto.LDDate,
                 LRDate = dto.LRDate,
                 CDDate = dto.CDDate,
-                ApprovalDate = dto.ApprovalDate,
+                ApprovalDate = DateTime.UtcNow,
                 DateCreation = dto.DateCreation,
                 Statut = dto.Statut,
 
