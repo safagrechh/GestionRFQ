@@ -1,83 +1,88 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using EX.Core.Domain;
+using EX.Core.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace EX.UI.Web.Controllers
 {
-    public class MarketSegmentController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class MarketSegmentController : ControllerBase
     {
-        // GET: MarketSegmentController
-        public ActionResult Index()
+        private readonly IService<MarketSegment> _marketSegmentService;
+
+        public MarketSegmentController(IService<MarketSegment> marketSegmentService)
         {
-            return View();
+            _marketSegmentService = marketSegmentService;
         }
 
-        // GET: MarketSegmentController/Details/5
-        public ActionResult Details(int id)
+        // GET: api/MarketSegment
+        [HttpGet]
+        public ActionResult<IEnumerable<MarketSegment>> GetAll()
         {
-            return View();
+            var marketSegments = _marketSegmentService.GetAll();
+            return Ok(marketSegments);
         }
 
-        // GET: MarketSegmentController/Create
-        public ActionResult Create()
+        // GET: api/MarketSegment/{id}
+        [HttpGet("{id}")]
+        public ActionResult<MarketSegment> Get(int id)
         {
-            return View();
+            var marketSegment = _marketSegmentService.Get(id);
+            if (marketSegment == null)
+            {
+                return NotFound();
+            }
+            return Ok(marketSegment);
         }
 
-        // POST: MarketSegmentController/Create
+        // POST: api/MarketSegment
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public ActionResult<MarketSegment> Create([FromBody] MarketSegment marketSegment)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                return BadRequest(ModelState);
             }
-            catch
-            {
-                return View();
-            }
+
+            _marketSegmentService.Add(marketSegment);
+            return CreatedAtAction(nameof(Get), new { id = marketSegment.Id }, marketSegment);
         }
 
-        // GET: MarketSegmentController/Edit/5
-        public ActionResult Edit(int id)
+        // PUT: api/MarketSegment/{id}
+        [HttpPut("{id}")]
+        public IActionResult Update(int id, [FromBody] MarketSegment marketSegment)
         {
-            return View();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var existingMarketSegment = _marketSegmentService.Get(id);
+            if (existingMarketSegment == null)
+            {
+                return NotFound();
+            }
+
+            existingMarketSegment.Nom = marketSegment.Nom;
+
+            _marketSegmentService.Update(existingMarketSegment);
+
+            return NoContent();
         }
 
-        // POST: MarketSegmentController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        // DELETE: api/MarketSegment/{id}
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
         {
-            try
+            var marketSegment = _marketSegmentService.Get(id);
+            if (marketSegment == null)
             {
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
-            catch
-            {
-                return View();
-            }
-        }
 
-        // GET: MarketSegmentController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: MarketSegmentController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            _marketSegmentService.Delete(marketSegment);
+            return NoContent();
         }
     }
 }

@@ -1,83 +1,128 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using EX.Core.Domain;
+using EX.Core.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EX.UI.Web.Controllers
 {
-    public class HistoriqueActionController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class HistoriqueActionController : ControllerBase
     {
-        // GET: HistoriqueActionController
-        public ActionResult Index()
+        private readonly IService<HistoriqueAction> _historiqueActionService;
+
+        public HistoriqueActionController(IService<HistoriqueAction> historiqueActionService)
         {
-            return View();
+            _historiqueActionService = historiqueActionService;
         }
 
-        // GET: HistoriqueActionController/Details/5
-        public ActionResult Details(int id)
+        // GET: api/HistoriqueAction
+        [HttpGet]
+        public ActionResult<IEnumerable<HistoriqueActionDto>> GetAll()
         {
-            return View();
+            var actions = _historiqueActionService.GetAll()
+                .Select(a => new HistoriqueActionDto
+                {
+                    Id = a.Id,
+                    Type = a.Type,
+                    CibleAction = a.CibleAction,
+                    ReferenceCible = a.ReferenceCible,
+                    DetailsAction = a.DetailsAction,
+                    DateAction = a.DateAction,
+                    UserId = a.UserId
+                });
+            return Ok(actions);
         }
 
-        // GET: HistoriqueActionController/Create
-        public ActionResult Create()
+        // GET: api/HistoriqueAction/user/{userId}
+        [HttpGet("user/{userId}")]
+        public ActionResult<IEnumerable<HistoriqueActionDto>> GetByUser(int userId)
         {
-            return View();
+            var actions = _historiqueActionService.GetAll()
+                .Where(a => a.UserId == userId)
+                .Select(a => new HistoriqueActionDto
+                {
+                    Id = a.Id,
+                    Type = a.Type,
+                    CibleAction = a.CibleAction,
+                    ReferenceCible = a.ReferenceCible,
+                    DetailsAction = a.DetailsAction,
+                    DateAction = a.DateAction,
+                    UserId = a.UserId
+                });
+            return Ok(actions);
         }
 
-        // POST: HistoriqueActionController/Create
+        // POST: api/HistoriqueAction
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public ActionResult<HistoriqueActionDto> AddAction([FromBody] CreateHistoriqueActionDto dto)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                return BadRequest(ModelState);
             }
-            catch
+
+            var action = new HistoriqueAction
             {
-                return View();
-            }
+                Type = dto.Type,
+                CibleAction = dto.CibleAction,
+                ReferenceCible = dto.ReferenceCible,
+                DetailsAction = dto.DetailsAction,
+                DateAction = dto.DateAction,
+                UserId = dto.UserId
+            };
+
+            _historiqueActionService.Add(action);
+
+            var actionDto = new HistoriqueActionDto
+            {
+                Id = action.Id,
+                Type = action.Type,
+                CibleAction = action.CibleAction,
+                ReferenceCible = action.ReferenceCible,
+                DetailsAction = action.DetailsAction,
+                DateAction = action.DateAction,
+                UserId = action.UserId
+            };
+
+            return CreatedAtAction(nameof(GetAll), new { id = action.Id }, actionDto);
         }
 
-        // GET: HistoriqueActionController/Edit/5
-        public ActionResult Edit(int id)
+        // DELETE: api/HistoriqueAction/{id}
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
         {
-            return View();
-        }
+            var action = _historiqueActionService.Get(id);
+            if (action == null)
+            {
+                return NotFound();
+            }
 
-        // POST: HistoriqueActionController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+            _historiqueActionService.Delete(action);
 
-        // GET: HistoriqueActionController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
+            return NoContent();
         }
+    }
 
-        // POST: HistoriqueActionController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+    public class CreateHistoriqueActionDto
+    {
+        public string Type { get; set; }
+        public string CibleAction { get; set; }
+        public string ReferenceCible { get; set; }
+        public string DetailsAction { get; set; }
+        public DateTime DateAction { get; set; }
+        public int UserId { get; set; }
+    }
+
+    public class HistoriqueActionDto
+    {
+        public int Id { get; set; }
+        public string Type { get; set; }
+        public string CibleAction { get; set; }
+        public string ReferenceCible { get; set; }
+        public string DetailsAction { get; set; }
+        public DateTime DateAction { get; set; }
+        public int UserId { get; set; }
     }
 }

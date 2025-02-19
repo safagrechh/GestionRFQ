@@ -11,8 +11,8 @@ namespace EX.Core.Domain
         public int Id { get; set; }
         public string Nom { get; set; }
 
-        public virtual IList<VersionRFQ> Versions{ get; set; }
-        public virtual IList<RFQ> RFQs { get; set; }
+        public virtual IList<VersionRFQ>? Versions{ get; set; }
+        public virtual IList<RFQ>? RFQs { get; set; }
 
       
 

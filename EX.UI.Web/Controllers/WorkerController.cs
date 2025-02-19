@@ -1,83 +1,175 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using EX.Core.Domain;
+using EX.Core.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EX.UI.Web.Controllers
 {
-    public class WorkerController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class WorkerController : ControllerBase
     {
-        // GET: WorkerController
-        public ActionResult Index()
+        private readonly IService<Worker> _workerService;
+
+        public WorkerController(IService<Worker> workerService)
         {
-            return View();
+            _workerService = workerService;
         }
 
-        // GET: WorkerController/Details/5
-        public ActionResult Details(int id)
+        // GET: api/Worker
+        [HttpGet]
+        public ActionResult<IEnumerable<WorkerDto>> GetAll()
         {
-            return View();
+            var workers = _workerService.GetAll()
+                .Select(worker => new WorkerDto
+                {
+                    Id = worker.Id,
+                    Nom = worker.Nom,
+                    Role = worker.Role
+                })
+                .ToList();
+
+            return Ok(workers);
         }
 
-        // GET: WorkerController/Create
-        public ActionResult Create()
+        // GET: api/Worker/{id}
+        [HttpGet("{id}")]
+        public ActionResult<WorkerDto> Get(int id)
         {
-            return View();
-        }
-
-        // POST: WorkerController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
+            var worker = _workerService.Get(id);
+            if (worker == null)
             {
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
-            catch
+
+            var workerDto = new WorkerDto
             {
-                return View();
-            }
+                Id = worker.Id,
+                Nom = worker.Nom,
+                Role = worker.Role
+            };
+
+            return Ok(workerDto);
         }
 
-        // GET: WorkerController/Edit/5
-        public ActionResult Edit(int id)
+        // POST: api/Worker/create-material
+        [HttpPost("create-materialLeader")]
+        public ActionResult<WorkerDto> CreateMaterialWorker([FromBody] CreateWorkerDto dto)
         {
-            return View();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var worker = new Worker
+            {
+                Nom = dto.Nom,
+                Role = RoleW.Material
+            };
+
+            _workerService.Add(worker);
+
+            var workerDto = new WorkerDto
+            {
+                Id = worker.Id,
+                Nom = worker.Nom,
+                Role = worker.Role
+            };
+
+            return CreatedAtAction(nameof(Get), new { id = worker.Id }, workerDto);
         }
 
-        // POST: WorkerController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        // POST: api/Worker/create-test
+        [HttpPost("create-testLeader")]
+        public ActionResult<WorkerDto> CreateTestWorker([FromBody] CreateWorkerDto dto)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                return BadRequest(ModelState);
             }
-            catch
+
+            var worker = new Worker
             {
-                return View();
-            }
+                Nom = dto.Nom,
+                Role = RoleW.Test
+            };
+
+            _workerService.Add(worker);
+
+            var workerDto = new WorkerDto
+            {
+                Id = worker.Id,
+                Nom = worker.Nom,
+                Role = worker.Role
+            };
+
+            return CreatedAtAction(nameof(Get), new { id = worker.Id }, workerDto);
         }
 
-        // GET: WorkerController/Delete/5
-        public ActionResult Delete(int id)
+        // PUT: api/Worker/{id}
+        [HttpPut("{id}")]
+        public IActionResult Update(int id, [FromBody] UpdateWorkerDto dto)
         {
-            return View();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var worker = _workerService.Get(id);
+            if (worker == null)
+            {
+                return NotFound();
+            }
+
+            // Only update fields if they are provided
+            if (dto.Nom != null)
+            {
+                worker.Nom = dto.Nom;
+            }
+
+            if (dto.Role.HasValue)
+            {
+                worker.Role = dto.Role.Value;
+            }
+
+            _workerService.Update(worker);
+
+            return NoContent();
         }
 
-        // POST: WorkerController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+
+        // DELETE: api/Worker/{id}
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
         {
-            try
+            var worker = _workerService.Get(id);
+            if (worker == null)
             {
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
-            catch
-            {
-                return View();
-            }
+
+            _workerService.Delete(worker);
+
+            return NoContent();
         }
+    }
+
+    public class WorkerDto
+    {
+        public int Id { get; set; }
+        public string Nom { get; set; }
+        public RoleW Role { get; set; }
+    }
+
+    public class CreateWorkerDto
+    {
+        public string Nom { get; set; }
+    }
+
+    public class UpdateWorkerDto
+    {
+        public string? Nom { get; set; }
+        public RoleW? Role { get; set; }
     }
 }
