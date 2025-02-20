@@ -1,84 +1,80 @@
 ﻿using EX.Core.Domain;
 using EX.Core.Services;
-using System.IdentityModel.Tokens.Jwt; // Pour JwtRegisteredClaimNames
-using System.Security.Claims; // Pour ClaimTypes
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace EX.UI.Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")] 
     public class UserController : ControllerBase
     {
         private readonly IService<User> _userService;
         private readonly TokenService _tokenService;
+
         public UserController(IService<User> userService, TokenService tokenService)
         {
             _userService = userService;
             _tokenService = tokenService;
         }
 
-        // Méthode pour récupérer les informations de l'utilisateur connecté
         [HttpGet("me")]
+        [AllowAnonymous] // Exemple : tu peux autoriser certaines routes publiquement si besoin
         public IActionResult GetCurrentUser()
         {
-            // 🔹 First try to get the User ID
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _))?.Value;
 
-            // 🔹 If there's no ID, try using the email (sub claim)
             if (string.IsNullOrEmpty(userIdClaim))
             {
-                var email = User.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
-                if (string.IsNullOrEmpty(email))
+                var emailClaim = User.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+                if (string.IsNullOrEmpty(emailClaim))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                // Lookup user by email
-                var user = _userService.GetAll().FirstOrDefault(u => u.Email == email);
-                if (user == null)
+                var userByEmail = _userService.GetAll().FirstOrDefault(u => u.Email == emailClaim);
+                if (userByEmail == null)
                 {
                     return NotFound(new { message = "User not found" });
                 }
 
                 return Ok(new
                 {
-                    user.Id,
-                    user.Email,
-                    user.Role
+                    userByEmail.Id,
+                    userByEmail.Email,
+                    userByEmail.Role
                 });
             }
 
-            // 🔹 Otherwise, look up by userId
             if (!int.TryParse(userIdClaim, out int userId))
             {
                 return BadRequest(new { message = "Invalid user ID format in token" });
             }
 
-            var userById = _userService.Get(userId);
-            if (userById == null)
+            var user = _userService.Get(userId);
+            if (user == null)
             {
                 return NotFound(new { message = "User not found" });
             }
 
             return Ok(new
             {
-                userById.Id,
-                userById.Email,
-                userById.Role
+                user.Id,
+                user.Email,
+                user.Role
             });
         }
 
-        // Méthode pour tester l'accès administrateur
         [HttpGet("admin")]
-        [Authorize(Roles = "Admin")] // Restreindre l'accès aux utilisateurs avec le rôle "Admin"
         public IActionResult AdminEndpoint()
         {
             return Ok(new { message = "Welcome, Admin!" });
         }
+
         [HttpGet]
         public ActionResult<IEnumerable<UserSummaryDto>> GetAll()
         {
@@ -91,7 +87,6 @@ namespace EX.UI.Web.Controllers
             }).ToList();
             return Ok(userDtos);
         }
-
 
         [HttpGet("{id}")]
         public ActionResult<UserSummaryDto> Get(int id)
@@ -111,7 +106,6 @@ namespace EX.UI.Web.Controllers
 
             return Ok(userDto);
         }
-
 
         [HttpPost]
         public ActionResult<User> Create([FromBody] CreateUserDto dto)
@@ -202,6 +196,4 @@ namespace EX.UI.Web.Controllers
         public string NomUser { get; set; }
         public string Email { get; set; }
     }
-
-
 }

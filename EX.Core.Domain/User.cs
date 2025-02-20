@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace EX.Core.Domain
 {   
     public enum RoleU
-    { validateur , IngenieurRFQ , Admin , Lecteur  }
+    { Validateur , IngenieurRFQ , Admin , Lecteur  }
     public class User
     {
         public int Id { get; set; }
