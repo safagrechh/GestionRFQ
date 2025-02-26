@@ -21,8 +21,8 @@ namespace EX.UI.Web.Controllers
             _tokenService = tokenService;
         }
 
+        [AllowAnonymous]//  Exemple : tu peux autoriser certaines routes publiquement si besoin
         [HttpGet("me")]
-        [AllowAnonymous] // Exemple : tu peux autoriser certaines routes publiquement si besoin
         public IActionResult GetCurrentUser()
         {
             var userIdClaim = User.Claims
@@ -65,7 +65,9 @@ namespace EX.UI.Web.Controllers
             {
                 user.Id,
                 user.Email,
-                user.Role
+                user.NomUser,
+                user.Role,
+
             });
         }
 
@@ -106,6 +108,7 @@ namespace EX.UI.Web.Controllers
 
             return Ok(userDto);
         }
+
 
         [HttpPost]
         public ActionResult<User> Create([FromBody] CreateUserDto dto)
@@ -171,7 +174,30 @@ namespace EX.UI.Web.Controllers
 
             return NoContent();
         }
+        [HttpGet("by-role/{role}")]
+        public ActionResult<IEnumerable<UserSummaryDto>> GetUsersByRole(string role)
+        {
+            // Fetch all users with the specified role
+            var users = _userService.GetAll().Where(u => u.Role.ToString() == role).ToList();
+
+            if (users == null || !users.Any())
+            {
+                return NotFound(new { message = "No users found with the specified role." });
+            }
+
+            // Map the list of users to a UserSummaryDto
+            var userDtos = users.Select(user => new UserSummaryDto
+            {
+                Id = user.Id,
+                NomUser = user.NomUser,
+                Email = user.Email
+            }).ToList();
+
+            return Ok(userDtos);
+        }
+
     }
+
 
     public class CreateUserDto
     {
