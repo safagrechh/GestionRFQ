@@ -111,7 +111,7 @@ namespace EX.UI.Web.Controllers
                 SOPDate = dto.SOPDate,
                 MaxV = dto.MaxV,
                 EstV = dto.EstV,
-                Statut = dto.Statut ?? Statut.Brouillon, // Default to Brouillon
+                Statut = dto.Statut ?? Statut.NotStarted, // Default to Brouillon
                 KODate = dto.KODate,
                 CustomerDataDate = dto.CustomerDataDate,
                 MDDate = dto.MDDate,
@@ -128,7 +128,9 @@ namespace EX.UI.Web.Controllers
                 MarketSegmentId = dto.MarketSegmentId,
                 ClientId = dto.ClientId,
                 IngenieurRFQId = dto.IngenieurRFQId,
-                ValidateurId = dto.ValidateurId
+                ValidateurId = dto.ValidateurId,
+                Valide = false ,
+                Rejete = false,
             };
 
             _rfqService.Add(rfq);
@@ -172,6 +174,9 @@ namespace EX.UI.Web.Controllers
             existingRFQ.MarketSegmentId = dto.MarketSegmentId ?? existingRFQ.MarketSegmentId;
             existingRFQ.ValidateurId = dto.ValidateurId ?? existingRFQ.ValidateurId;
             existingRFQ.IngenieurRFQId = dto.IngenieurRFQId ?? existingRFQ.IngenieurRFQId;
+            existingRFQ.Valide = dto.Valide ?? existingRFQ.Valide;
+            existingRFQ.Rejete = dto.Rejete ?? existingRFQ.Rejete;
+
 
             _rfqService.Update(existingRFQ);
 
@@ -192,8 +197,8 @@ namespace EX.UI.Web.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
-        [HttpPost("{id}/finaliser")]
+       /** [Authorize(Roles = "Validateur,IngenieurRFQ")]
+       [HttpPost("{id}/finaliser")]
         public IActionResult FinaliserBrouillon(int id)
         {
             var rfq = _rfqService.Get(id);
@@ -206,6 +211,7 @@ namespace EX.UI.Web.Controllers
 
             return Ok(rfq);
         }
+        **/
 
         [Authorize(Roles = "Validateur")]
         [HttpPost("{id}/valider")]
@@ -217,12 +223,7 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-            if (rfq.Statut != Statut.Finalise)
-            {
-                return BadRequest("Seules les RFQs finalisées peuvent être validées.");
-            }
-
-            rfq.Statut = Statut.Valide;
+            rfq.Valide = true ;
             rfq.ApprovalDate = DateTime.UtcNow;
             _rfqService.Update(rfq);
 
@@ -239,12 +240,8 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-            if (rfq.Statut != Statut.Finalise)
-            {
-                return BadRequest("Seules les RFQs finalisées peuvent être rejetées.");
-            }
 
-            rfq.Statut = Statut.Rejete;
+            rfq.Rejete = true;
             _rfqService.Update(rfq);
 
             return Ok(rfq);
@@ -333,6 +330,9 @@ namespace EX.UI.Web.Controllers
         public int? ClientId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? ValidateurId { get; set; }
+        public Boolean? Valide { get; set; }
+        public Boolean? Rejete { get; set; }
+
     }
 
         public class RFQDetailsDto : RFQSummaryDto
@@ -361,6 +361,9 @@ namespace EX.UI.Web.Controllers
         public string IngenieurRFQ { get; set; }
         public string Validateur { get; set; }
         public string Client { get; set; }
+
+        public Boolean? Valide { get; set; }
+        public Boolean? Rejete { get; set; }
 
     }
 

@@ -174,6 +174,7 @@ namespace EX.UI.Web.Controllers
 
             return NoContent();
         }
+        [AllowAnonymous]
         [HttpGet("by-role/{role}")]
         public ActionResult<IEnumerable<UserSummaryDto>> GetUsersByRole(string role)
         {

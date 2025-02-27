@@ -18,9 +18,16 @@ namespace EX.UI.Web.Controllers
 
         // GET: api/MarketSegment
         [HttpGet]
-        public ActionResult<IEnumerable<MarketSegment>> GetAll()
+        public ActionResult<IEnumerable<MarketSegmentDto>> GetAll()
         {
-            var marketSegments = _marketSegmentService.GetAll();
+            var marketSegments = _marketSegmentService.GetAll()
+                .Select(m => new MarketSegmentDto
+                {
+                    Id = m.Id,
+                    Nom = m.Nom,
+                  
+                })
+                .ToList(); ;
             return Ok(marketSegments);
         }
 
@@ -84,5 +91,11 @@ namespace EX.UI.Web.Controllers
             _marketSegmentService.Delete(marketSegment);
             return NoContent();
         }
+    }
+    public class MarketSegmentDto
+    {
+        public int Id { get; set; }
+        public string Nom { get; set; }
+        
     }
 }

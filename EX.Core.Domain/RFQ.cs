@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace EX.Core.Domain
 {   public enum Statut
     {
-        Brouillon ,Finalise ,Valide , Rejete
+        Complete , InProgress ,NotStarted
     }
     public class RFQ
     {
@@ -35,8 +35,12 @@ namespace EX.Core.Domain
         public DateTime DateCreation { get; set; }
         public Statut Statut { get; set; }
 
+        public Boolean Valide { get; set; }
+
+        public Boolean Rejete { get; set; }
+
         // les relations
-        
+
         public virtual Worker? MaterialLeader { get; set; }
         public int? MaterialLeaderId { get; set; }
 
