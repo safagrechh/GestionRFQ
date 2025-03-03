@@ -100,6 +100,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+
 var app = builder.Build();
 
 // **8. Apply Database Migrations Automatically**
@@ -128,7 +132,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // **12. Swagger UI Configuration**
-app.UseSwagger();
+app.UseSwagger(c =>
+{
+    c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Swagger is being generated...");
+    });
+});
+
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "GestionRFQ API v1");

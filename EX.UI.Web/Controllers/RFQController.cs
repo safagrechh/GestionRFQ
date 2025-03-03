@@ -48,7 +48,10 @@ namespace EX.UI.Web.Controllers
                 MarketSegment = r.MarketSegment?.Nom,
                 IngenieurRFQ = r.IngenieurRFQ?.NomUser,
                 Validateur = r.Validateur?.NomUser,
-                Client = r.Client?.Nom
+                Client = r.Client?.Nom ,
+                Valide = r.Valide ,
+                Rejete = r.Rejete ,
+                    
             }).ToList();
 
             return Ok(rfqDtos);
@@ -89,7 +92,10 @@ namespace EX.UI.Web.Controllers
                 MarketSegment = rfq.MarketSegment?.Nom,
                 IngenieurRFQ = rfq.IngenieurRFQ?.NomUser,
                 Validateur = rfq.Validateur?.NomUser,
-                Client = rfq.Client?.Nom
+                Client = rfq.Client?.Nom ,
+                Valide = rfq.Valide ,
+                Rejete = rfq.Rejete ,
+
             };
 
             return Ok(rfqDto);
@@ -130,6 +136,51 @@ namespace EX.UI.Web.Controllers
                 IngenieurRFQId = dto.IngenieurRFQId,
                 ValidateurId = dto.ValidateurId,
                 Valide = false ,
+                Rejete = false,
+            };
+
+            _rfqService.Add(rfq);
+
+            return CreatedAtAction(nameof(Get), new { id = rfq.CodeRFQ }, rfq);
+        }
+
+
+        [Authorize(Roles = "Validateur")]
+        [HttpPost("create-valide")]
+
+        public ActionResult<RFQ> CreateValide([FromBody] CreateRFQDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var rfq = new RFQ
+            {
+                QuoteName = dto.QuoteName,
+                NumRefQuoted = dto.NumRefQuoted,
+                SOPDate = dto.SOPDate,
+                MaxV = dto.MaxV,
+                EstV = dto.EstV,
+                Statut = dto.Statut ?? Statut.NotStarted, // Default to Brouillon
+                KODate = dto.KODate,
+                CustomerDataDate = dto.CustomerDataDate,
+                MDDate = dto.MDDate,
+                MRDate = dto.MRDate,
+                TDDate = dto.TDDate,
+                TRDate = dto.TRDate,
+                LDDate = dto.LDDate,
+                LRDate = dto.LRDate,
+                CDDate = dto.CDDate,
+                ApprovalDate = DateTime.UtcNow,
+                DateCreation = DateTime.UtcNow,
+                MaterialLeaderId = dto.MaterialLeaderId,
+                TestLeaderId = dto.TestLeaderId,
+                MarketSegmentId = dto.MarketSegmentId,
+                ClientId = dto.ClientId,
+                IngenieurRFQId = dto.IngenieurRFQId,
+                ValidateurId = dto.ValidateurId,
+                Valide = true,
                 Rejete = false,
             };
 
@@ -362,8 +413,8 @@ namespace EX.UI.Web.Controllers
         public string Validateur { get; set; }
         public string Client { get; set; }
 
-        public Boolean? Valide { get; set; }
-        public Boolean? Rejete { get; set; }
+        public Boolean Valide { get; set; }
+        public Boolean Rejete { get; set; }
 
     }
 

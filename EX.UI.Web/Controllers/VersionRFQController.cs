@@ -66,6 +66,8 @@ namespace EX.UI.Web.Controllers
                 CDDate = versionRFQ.CDDate,
                 ApprovalDate = versionRFQ.ApprovalDate,
                 DateCreation = versionRFQ.DateCreation,
+                Valide = versionRFQ.Valide,
+                Rejete = versionRFQ.Rejete,
                 Statut = versionRFQ.Statut,
                 RFQId = versionRFQ.RFQId,
                 RFQQuoteName = versionRFQ.RFQ?.QuoteName,
@@ -73,7 +75,8 @@ namespace EX.UI.Web.Controllers
                 TestLeader = versionRFQ.TestLeader?.Nom,
                 MarketSegment = versionRFQ.MarketSegment?.Nom,
                 IngenieurRFQ = versionRFQ.IngenieurRFQ?.NomUser,
-                Validateur = versionRFQ.Validateur?.NomUser
+                Validateur = versionRFQ.Validateur?.NomUser ,
+
             };
 
             return Ok(versionRFQDto);
@@ -99,8 +102,8 @@ namespace EX.UI.Web.Controllers
                 QuoteName = dto.QuoteName ?? originalRFQ.QuoteName,
                 NumRefQuoted = dto.NumRefQuoted ?? originalRFQ.NumRefQuoted,
                 SOPDate = dto.SOPDate ?? originalRFQ.SOPDate,
-                MaxV = dto.MaxV ?? originalRFQ.MaxV, // <-- Inherit MaxV
-                EstV = dto.EstV ?? originalRFQ.EstV, // <-- Inherit EstV
+                MaxV = dto.MaxV ?? originalRFQ.MaxV, 
+                EstV = dto.EstV ?? originalRFQ.EstV,
                 Statut = dto.Statut ?? originalRFQ.Statut,
                 KODate = dto.KODate ?? originalRFQ.KODate,
                 CustomerDataDate = dto.CustomerDataDate ?? originalRFQ.CustomerDataDate,
@@ -118,7 +121,10 @@ namespace EX.UI.Web.Controllers
                 TestLeaderId = dto.TestLeaderId ?? originalRFQ.TestLeaderId,
                 MarketSegmentId = dto.MarketSegmentId ?? originalRFQ.MarketSegmentId,
                 IngenieurRFQId = dto.IngenieurRFQId ?? originalRFQ.IngenieurRFQId,
-                ValidateurId = dto.ValidateurId ?? originalRFQ.ValidateurId
+                ValidateurId = dto.ValidateurId ?? originalRFQ.ValidateurId ,
+                Valide = dto.Valide ?? originalRFQ.Valide,
+                Rejete = dto.Rejete ?? originalRFQ.Rejete,
+
             };
 
             _versionRFQService.Add(versionRFQ);
@@ -162,7 +168,8 @@ namespace EX.UI.Web.Controllers
             existingVersionRFQ.TestLeaderId = dto.TestLeaderId ?? existingVersionRFQ.TestLeaderId;
             existingVersionRFQ.MarketSegmentId = dto.MarketSegmentId ?? existingVersionRFQ.MarketSegmentId;
             existingVersionRFQ.ValidateurId = dto.ValidateurId ?? existingVersionRFQ.ValidateurId;
-            existingVersionRFQ.IngenieurRFQId = dto.IngenieurRFQId ?? existingVersionRFQ.IngenieurRFQId;
+            existingVersionRFQ.Valide = dto.Valide ?? existingVersionRFQ.Valide;
+            existingVersionRFQ.Rejete = dto.Rejete ?? existingVersionRFQ.Rejete;
 
             _versionRFQService.Update(existingVersionRFQ);
 
@@ -209,6 +216,8 @@ namespace EX.UI.Web.Controllers
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? ValidateurId { get; set; }
+        public Boolean? Valide { get; set; }
+        public Boolean? Rejete { get; set; }
     }
 
     public class UpdateVersionRFQDto
@@ -235,6 +244,10 @@ namespace EX.UI.Web.Controllers
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? ValidateurId { get; set; }
+        public Boolean? Valide { get; set; }
+        public Boolean? Rejete { get; set; }
+
+
     }
 
     public class VersionRFQSummaryDto
@@ -243,6 +256,8 @@ namespace EX.UI.Web.Controllers
         public string QuoteName { get; set; }
         public int NumRefQuoted { get; set; }
         public int RFQId { get; set; }
+        public Boolean Valide { get; set; }
+        public Boolean Rejete { get; set; }
     }
 
     public class VersionRFQDetailsDto : VersionRFQSummaryDto
@@ -268,5 +283,7 @@ namespace EX.UI.Web.Controllers
         public string MarketSegment { get; set; }
         public string IngenieurRFQ { get; set; }
         public string Validateur { get; set; }
+        public Boolean Valide { get; set; }
+        public Boolean Rejete { get; set; }
     }
 }
