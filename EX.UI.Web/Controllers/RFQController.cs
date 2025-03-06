@@ -24,7 +24,7 @@ namespace EX.UI.Web.Controllers
         {
             var rfqs = _rfqService.GetAll();
             var rfqDtos = rfqs.Select(r => new RFQDetailsDto
-            {
+            {   Id = r.Id , 
                 CQ = r.CQ,
                 QuoteName = r.QuoteName,
                 NumRefQuoted = r.NumRefQuoted,
@@ -411,7 +411,7 @@ namespace EX.UI.Web.Controllers
 
     public class RFQDetailsDto : RFQSummaryDto
     {
-        public int? CQ { get; set; }
+        public int Id { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
         public int? MaxV { get; set; }
