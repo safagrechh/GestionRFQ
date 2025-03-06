@@ -11,13 +11,14 @@ namespace EX.Core.Domain
    
     public class VersionRFQ
     {
-        [Key] 
-        public int CodeV { get; set; }
+        
+        public int Id { get; set; }
+        public int? CQ { get; set; }
         public string QuoteName { get; set; }
-        public int NumRefQuoted { get; set; }
+        public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
-        public int MaxV { get; set; }
-        public int EstV { get; set; }
+        public int? MaxV { get; set; }
+        public int? EstV { get; set; }
 
         public DateTime? KODate { get; set; }
         public DateTime? CustomerDataDate { get; set; }
@@ -34,6 +35,8 @@ namespace EX.Core.Domain
         public Boolean Valide { get; set; }
 
         public Boolean Rejete { get; set; }
+        public Boolean Brouillon { get; set; }
+
 
         //les relations
 
@@ -59,8 +62,8 @@ namespace EX.Core.Domain
         public int? IngenieurRFQId { get; set; }
 
       
-        public virtual User Validateur { get; set; }
-        public int? ValidateurId { get; set; }
+        public virtual User VALeader { get; set; }
+        public int? VALeaderId { get; set; }
     }
 
 

@@ -25,7 +25,7 @@ namespace EX.UI.Web.Controllers
             var rfqs = _rfqService.GetAll();
             var rfqDtos = rfqs.Select(r => new RFQDetailsDto
             {
-                CodeRFQ = r.CodeRFQ,
+                CQ = r.CQ,
                 QuoteName = r.QuoteName,
                 NumRefQuoted = r.NumRefQuoted,
                 SOPDate = r.SOPDate,
@@ -47,10 +47,11 @@ namespace EX.UI.Web.Controllers
                 TestLeader = r.TestLeader?.Nom,
                 MarketSegment = r.MarketSegment?.Nom,
                 IngenieurRFQ = r.IngenieurRFQ?.NomUser,
-                Validateur = r.Validateur?.NomUser,
+                VALeader = r.VALeader?.NomUser,
                 Client = r.Client?.Nom ,
                 Valide = r.Valide ,
                 Rejete = r.Rejete ,
+                Brouillon = r.Brouillon,
                     
             }).ToList();
 
@@ -69,7 +70,7 @@ namespace EX.UI.Web.Controllers
 
             var rfqDto = new RFQDetailsDto
             {
-                CodeRFQ = rfq.CodeRFQ,
+                CQ = rfq.CQ,
                 QuoteName = rfq.QuoteName,
                 NumRefQuoted = rfq.NumRefQuoted,
                 SOPDate = rfq.SOPDate,
@@ -91,10 +92,11 @@ namespace EX.UI.Web.Controllers
                 TestLeader = rfq.TestLeader?.Nom,
                 MarketSegment = rfq.MarketSegment?.Nom,
                 IngenieurRFQ = rfq.IngenieurRFQ?.NomUser,
-                Validateur = rfq.Validateur?.NomUser,
+                VALeader = rfq.VALeader?.NomUser,
                 Client = rfq.Client?.Nom ,
                 Valide = rfq.Valide ,
                 Rejete = rfq.Rejete ,
+                Brouillon = rfq.Brouillon ,
 
             };
 
@@ -105,19 +107,26 @@ namespace EX.UI.Web.Controllers
         [HttpPost]
         public ActionResult<RFQ> Create([FromBody] CreateRFQDto dto)
         {
+            // Skip validation if Brouillon is true
+            if (dto.Brouillon == true)
+            {
+                ModelState.Clear();
+            }
+
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
             var rfq = new RFQ
-            {
+            {   CQ = dto.CQ,
                 QuoteName = dto.QuoteName,
                 NumRefQuoted = dto.NumRefQuoted,
                 SOPDate = dto.SOPDate,
                 MaxV = dto.MaxV,
                 EstV = dto.EstV,
-                Statut = dto.Statut ?? Statut.NotStarted, // Default to Brouillon
+                Statut = dto.Statut ?? Statut.NotStarted, // Default to NotStarted
                 KODate = dto.KODate,
                 CustomerDataDate = dto.CustomerDataDate,
                 MDDate = dto.MDDate,
@@ -134,14 +143,15 @@ namespace EX.UI.Web.Controllers
                 MarketSegmentId = dto.MarketSegmentId,
                 ClientId = dto.ClientId,
                 IngenieurRFQId = dto.IngenieurRFQId,
-                ValidateurId = dto.ValidateurId,
-                Valide = false ,
+                VALeaderId = dto.VALeaderId,
+                Valide = false,
                 Rejete = false,
+                Brouillon = dto.Brouillon,
             };
 
             _rfqService.Add(rfq);
 
-            return CreatedAtAction(nameof(Get), new { id = rfq.CodeRFQ }, rfq);
+            return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
 
@@ -157,6 +167,7 @@ namespace EX.UI.Web.Controllers
 
             var rfq = new RFQ
             {
+                CQ = dto.CQ,
                 QuoteName = dto.QuoteName,
                 NumRefQuoted = dto.NumRefQuoted,
                 SOPDate = dto.SOPDate,
@@ -179,59 +190,66 @@ namespace EX.UI.Web.Controllers
                 MarketSegmentId = dto.MarketSegmentId,
                 ClientId = dto.ClientId,
                 IngenieurRFQId = dto.IngenieurRFQId,
-                ValidateurId = dto.ValidateurId,
+                VALeaderId = dto.VALeaderId,
                 Valide = true,
                 Rejete = false,
             };
 
             _rfqService.Add(rfq);
 
-            return CreatedAtAction(nameof(Get), new { id = rfq.CodeRFQ }, rfq);
+            return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
         [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] UpdateRFQDto dto)
+        public ActionResult<RFQ> Update(int id, [FromBody] UpdateRFQDto dto)
         {
-            if (id != dto.CodeRFQ)
-            {
-                return BadRequest("RFQ ID mismatch");
-            }
-
-            var existingRFQ = _rfqService.Get(id);
-            if (existingRFQ == null)
+            var rfq = _rfqService.Get(id);
+            if (rfq == null)
             {
                 return NotFound();
             }
 
-            existingRFQ.QuoteName = dto.QuoteName ?? existingRFQ.QuoteName;
-            existingRFQ.NumRefQuoted = dto.NumRefQuoted ?? existingRFQ.NumRefQuoted;
-            existingRFQ.SOPDate = dto.SOPDate ?? existingRFQ.SOPDate;
-            existingRFQ.MaxV = dto.MaxV ?? existingRFQ.MaxV;
-            existingRFQ.EstV = dto.EstV ?? existingRFQ.EstV;
-            existingRFQ.Statut = dto.Statut ?? existingRFQ.Statut;
-            existingRFQ.KODate = dto.KODate ?? existingRFQ.KODate;
-            existingRFQ.CustomerDataDate = dto.CustomerDataDate ?? existingRFQ.CustomerDataDate;
-            existingRFQ.MDDate = dto.MDDate ?? existingRFQ.MDDate;
-            existingRFQ.MRDate = dto.MRDate ?? existingRFQ.MRDate;
-            existingRFQ.TDDate = dto.TDDate ?? existingRFQ.TDDate;
-            existingRFQ.TRDate = dto.TRDate ?? existingRFQ.TRDate;
-            existingRFQ.LDDate = dto.LDDate ?? existingRFQ.LDDate;
-            existingRFQ.LRDate = dto.LRDate ?? existingRFQ.LRDate;
-            existingRFQ.CDDate = dto.CDDate ?? existingRFQ.CDDate;
-            existingRFQ.ApprovalDate = dto.ApprovalDate ?? existingRFQ.ApprovalDate;
-            existingRFQ.MaterialLeaderId = dto.MaterialLeaderId ?? existingRFQ.MaterialLeaderId;
-            existingRFQ.TestLeaderId = dto.TestLeaderId ?? existingRFQ.TestLeaderId;
-            existingRFQ.MarketSegmentId = dto.MarketSegmentId ?? existingRFQ.MarketSegmentId;
-            existingRFQ.ValidateurId = dto.ValidateurId ?? existingRFQ.ValidateurId;
-            existingRFQ.IngenieurRFQId = dto.IngenieurRFQId ?? existingRFQ.IngenieurRFQId;
-            existingRFQ.Valide = dto.Valide ?? existingRFQ.Valide;
-            existingRFQ.Rejete = dto.Rejete ?? existingRFQ.Rejete;
+            // Skip validation if Brouillon is true
+            if (dto.Brouillon == true)
+            {
+                ModelState.ClearValidationState(nameof(UpdateRFQDto));
+            }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            rfq.CQ = dto.CQ ?? rfq.CQ;
+            rfq.QuoteName = dto.QuoteName ?? rfq.QuoteName;
+            rfq.NumRefQuoted = dto.NumRefQuoted ?? rfq.NumRefQuoted;
+            rfq.SOPDate = dto.SOPDate ?? rfq.SOPDate;
+            rfq.MaxV = dto.MaxV ?? rfq.MaxV;
+            rfq.EstV = dto.EstV ?? rfq.EstV;
+            rfq.KODate = dto.KODate ?? rfq.KODate;
+            rfq.CustomerDataDate = dto.CustomerDataDate ?? rfq.CustomerDataDate;
+            rfq.MDDate = dto.MDDate ?? rfq.MDDate;
+            rfq.MRDate = dto.MRDate ?? rfq.MRDate;
+            rfq.TDDate = dto.TDDate ?? rfq.TDDate;
+            rfq.TRDate = dto.TRDate ?? rfq.TRDate;
+            rfq.LDDate = dto.LDDate ?? rfq.LDDate;
+            rfq.LRDate = dto.LRDate ?? rfq.LRDate;
+            rfq.CDDate = dto.CDDate ?? rfq.CDDate;
+            rfq.ApprovalDate = dto.ApprovalDate ?? rfq.ApprovalDate;
+            rfq.Statut = dto.Statut ?? rfq.Statut;
+            rfq.MaterialLeaderId = dto.MaterialLeaderId ?? rfq.MaterialLeaderId;
+            rfq.TestLeaderId = dto.TestLeaderId ?? rfq.TestLeaderId;
+            rfq.MarketSegmentId = dto.MarketSegmentId ?? rfq.MarketSegmentId;
+            rfq.ClientId = dto.ClientId ?? rfq.ClientId;
+            rfq.IngenieurRFQId = dto.IngenieurRFQId ?? rfq.IngenieurRFQId;
+            rfq.VALeaderId = dto.VALeaderId ?? rfq.VALeaderId;
+            rfq.Valide = dto.Valide ?? rfq.Valide;
+            rfq.Rejete = dto.Rejete ?? rfq.Rejete;
+            rfq.Brouillon = dto.Brouillon ?? rfq.Brouillon;
 
-            _rfqService.Update(existingRFQ);
+            _rfqService.Update(rfq);
 
-            return NoContent();
+            return Ok(rfq);
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
@@ -298,6 +316,8 @@ namespace EX.UI.Web.Controllers
             return Ok(rfq);
         }
 
+
+
         [HttpGet("bystatut/{statut}")]
         public ActionResult<IEnumerable<object>> GetRFQsByStatut(string statut)
         {
@@ -310,7 +330,7 @@ namespace EX.UI.Web.Controllers
                 .Where(r => r.Statut == statutEnum)
                 .Select(r => new
                 {
-                    r.CodeRFQ,
+                    r.CQ,
                     r.QuoteName,
                     r.NumRefQuoted,
                     r.DateCreation,
@@ -328,37 +348,38 @@ namespace EX.UI.Web.Controllers
 
     }
     public class CreateRFQDto
-        {
-            public string QuoteName { get; set; }
-            public int NumRefQuoted { get; set; }
-            public DateTime? SOPDate { get; set; }
-            public int MaxV { get; set; }
-            public int EstV { get; set; }
-            public DateTime? KODate { get; set; }
-            public DateTime? CustomerDataDate { get; set; }
-            public DateTime? MDDate { get; set; }
-            public DateTime? MRDate { get; set; }
-            public DateTime? TDDate { get; set; }
-            public DateTime? TRDate { get; set; }
-            public DateTime? LDDate { get; set; }
-            public DateTime? LRDate { get; set; }
-            public DateTime? CDDate { get; set; }
-            public DateTime? ApprovalDate { get; set; }
-            public DateTime DateCreation { get; set; }
-            public Statut? Statut { get; set; }
-
-            public int? MaterialLeaderId { get; set; }
-            public int? TestLeaderId { get; set; }
-            public int? MarketSegmentId { get; set; }
-            public int? ClientId { get; set; }
-            public int? IngenieurRFQId { get; set; }
-            public int? ValidateurId { get; set; }
-
-        }
-
-        public class UpdateRFQDto
     {
-        public int CodeRFQ { get; set; }
+        public int? CQ { get; set; }
+        public string QuoteName { get; set; }
+        public int? NumRefQuoted { get; set; }  // Nullable for empty fields
+        public DateTime? SOPDate { get; set; }  // Nullable for empty fields
+        public int? MaxV { get; set; }  // Nullable for empty fields
+        public int? EstV { get; set; }  // Nullable for empty fields
+        public DateTime? KODate { get; set; }
+        public DateTime? CustomerDataDate { get; set; }
+        public DateTime? MDDate { get; set; }
+        public DateTime? MRDate { get; set; }
+        public DateTime? TDDate { get; set; }
+        public DateTime? TRDate { get; set; }
+        public DateTime? LDDate { get; set; }
+        public DateTime? LRDate { get; set; }
+        public DateTime? CDDate { get; set; }
+        public DateTime? ApprovalDate { get; set; }
+        public DateTime DateCreation { get; set; }
+        public Statut? Statut { get; set; }
+        public int? MaterialLeaderId { get; set; }
+        public int? TestLeaderId { get; set; }
+        public int? MarketSegmentId { get; set; }
+        public int? ClientId { get; set; }
+        public int? IngenieurRFQId { get; set; }
+        public int? VALeaderId { get; set; }
+        public Boolean Brouillon { get; set; }
+    }
+
+
+    public class UpdateRFQDto
+    {
+        public int? CQ { get; set; }
         public string QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
@@ -380,19 +401,21 @@ namespace EX.UI.Web.Controllers
         public int? MarketSegmentId { get; set; }
         public int? ClientId { get; set; }
         public int? IngenieurRFQId { get; set; }
-        public int? ValidateurId { get; set; }
+        public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
+        public Boolean? Brouillon { get; set; }
+
 
     }
 
-        public class RFQDetailsDto : RFQSummaryDto
+    public class RFQDetailsDto : RFQSummaryDto
     {
-       
-        public int NumRefQuoted { get; set; }
+        public int? CQ { get; set; }
+        public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
-        public int MaxV { get; set; }
-        public int EstV { get; set; }
+        public int? MaxV { get; set; }
+        public int? EstV { get; set; }
         public DateTime? KODate { get; set; }
         public DateTime? CustomerDataDate { get; set; }
         public DateTime? MDDate { get; set; }
@@ -410,11 +433,14 @@ namespace EX.UI.Web.Controllers
         public string TestLeader { get; set; }
         public string MarketSegment { get; set; }
         public string IngenieurRFQ { get; set; }
-        public string Validateur { get; set; }
+        public string VALeader { get; set; }
         public string Client { get; set; }
 
         public Boolean Valide { get; set; }
         public Boolean Rejete { get; set; }
+
+        public Boolean Brouillon { get; set; }
+
 
     }
 

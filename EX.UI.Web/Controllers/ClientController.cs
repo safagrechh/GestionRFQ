@@ -51,7 +51,7 @@ namespace EX.UI.Web.Controllers
                 RFQs = client.RFQs?.Select(rfq => new RFQSummaryDto
                 {
                     QuoteName = rfq.QuoteName,
-                    CodeRFQ = rfq.CodeRFQ
+                    CQ = rfq.CQ
                 }).ToList()
             };
 
@@ -147,7 +147,7 @@ namespace EX.UI.Web.Controllers
 
     public class RFQSummaryDto
     {
-         public int CodeRFQ { get; set; }
+         public int? CQ { get; set; }
         public string QuoteName { get; set; }
         
     }

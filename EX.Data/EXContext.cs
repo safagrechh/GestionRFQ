@@ -28,11 +28,11 @@ namespace EX.Data
                 .HasForeignKey(r => r.IngenieurRFQId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // RFQ -> Validateur
+            // RFQ -> VALeader
             modelBuilder.Entity<RFQ>()
-                .HasOne(r => r.Validateur)
+                .HasOne(r => r.VALeader)
                 .WithMany(u => u.RFQsEnTantQueValidateur)
-                .HasForeignKey(r => r.ValidateurId)
+                .HasForeignKey(r => r.VALeaderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // RFQ -> MaterialLeader (Worker)
@@ -70,11 +70,11 @@ namespace EX.Data
                 .HasForeignKey(v => v.IngenieurRFQId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // VersionRFQ -> Validateur (User)
+            // VersionRFQ -> VALeader (User)
             modelBuilder.Entity<VersionRFQ>()
-                .HasOne(v => v.Validateur)
+                .HasOne(v => v.VALeader)
                 .WithMany(u => u.VersionRFQsEnTantQueValidateur)
-                .HasForeignKey(v => v.ValidateurId)
+                .HasForeignKey(v => v.VALeaderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // VersionRFQ -> MaterialLeader (Worker)

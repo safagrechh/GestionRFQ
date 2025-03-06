@@ -4,6 +4,7 @@ using EX.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EX.Data.Migrations
 {
     [DbContext(typeof(EXContext))]
-    partial class EXContextModelSnapshot : ModelSnapshot
+    [Migration("20250304090931_brouillon")]
+    partial class brouillon
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,11 +144,11 @@ namespace EX.Data.Migrations
 
             modelBuilder.Entity("EX.Core.Domain.RFQ", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("CodeRFQ")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CodeRFQ"));
 
                     b.Property<DateTime?>("ApprovalDate")
                         .HasColumnType("datetime2");
@@ -156,9 +159,6 @@ namespace EX.Data.Migrations
                     b.Property<DateTime?>("CDDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CQ")
-                        .HasColumnType("int");
-
                     b.Property<int?>("ClientId")
                         .HasColumnType("int");
 
@@ -168,7 +168,7 @@ namespace EX.Data.Migrations
                     b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("EstV")
+                    b.Property<int>("EstV")
                         .HasColumnType("int");
 
                     b.Property<int?>("IngenieurRFQId")
@@ -195,13 +195,14 @@ namespace EX.Data.Migrations
                     b.Property<int?>("MaterialLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("MaxV")
+                    b.Property<int>("MaxV")
                         .HasColumnType("int");
 
-                    b.Property<int?>("NumRefQuoted")
+                    b.Property<int>("NumRefQuoted")
                         .HasColumnType("int");
 
                     b.Property<string>("QuoteName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Rejete")
@@ -222,13 +223,13 @@ namespace EX.Data.Migrations
                     b.Property<int?>("TestLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("VALeaderId")
+                    b.Property<int?>("ValidateurId")
                         .HasColumnType("int");
 
                     b.Property<bool>("Valide")
                         .HasColumnType("bit");
 
-                    b.HasKey("Id");
+                    b.HasKey("CodeRFQ");
 
                     b.HasIndex("ClientId");
 
@@ -240,7 +241,7 @@ namespace EX.Data.Migrations
 
                     b.HasIndex("TestLeaderId");
 
-                    b.HasIndex("VALeaderId");
+                    b.HasIndex("ValidateurId");
 
                     b.ToTable("RFQs");
                 });
@@ -300,11 +301,11 @@ namespace EX.Data.Migrations
 
             modelBuilder.Entity("EX.Core.Domain.VersionRFQ", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("CodeV")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CodeV"));
 
                     b.Property<DateTime?>("ApprovalDate")
                         .HasColumnType("datetime2");
@@ -315,16 +316,13 @@ namespace EX.Data.Migrations
                     b.Property<DateTime?>("CDDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CQ")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CustomerDataDate")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("EstV")
+                    b.Property<int>("EstV")
                         .HasColumnType("int");
 
                     b.Property<int?>("IngenieurRFQId")
@@ -351,10 +349,10 @@ namespace EX.Data.Migrations
                     b.Property<int?>("MaterialLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("MaxV")
+                    b.Property<int>("MaxV")
                         .HasColumnType("int");
 
-                    b.Property<int?>("NumRefQuoted")
+                    b.Property<int>("NumRefQuoted")
                         .HasColumnType("int");
 
                     b.Property<string>("QuoteName")
@@ -382,13 +380,13 @@ namespace EX.Data.Migrations
                     b.Property<int?>("TestLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("VALeaderId")
+                    b.Property<int?>("ValidateurId")
                         .HasColumnType("int");
 
                     b.Property<bool>("Valide")
                         .HasColumnType("bit");
 
-                    b.HasKey("Id");
+                    b.HasKey("CodeV");
 
                     b.HasIndex("IngenieurRFQId");
 
@@ -400,7 +398,7 @@ namespace EX.Data.Migrations
 
                     b.HasIndex("TestLeaderId");
 
-                    b.HasIndex("VALeaderId");
+                    b.HasIndex("ValidateurId");
 
                     b.ToTable("VersionRFQs");
                 });
@@ -488,9 +486,9 @@ namespace EX.Data.Migrations
                         .HasForeignKey("TestLeaderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EX.Core.Domain.User", "VALeader")
+                    b.HasOne("EX.Core.Domain.User", "Validateur")
                         .WithMany("RFQsEnTantQueValidateur")
-                        .HasForeignKey("VALeaderId")
+                        .HasForeignKey("ValidateurId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
@@ -503,7 +501,7 @@ namespace EX.Data.Migrations
 
                     b.Navigation("TestLeader");
 
-                    b.Navigation("VALeader");
+                    b.Navigation("Validateur");
                 });
 
             modelBuilder.Entity("EX.Core.Domain.Rapport", b =>
@@ -545,9 +543,9 @@ namespace EX.Data.Migrations
                         .HasForeignKey("TestLeaderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EX.Core.Domain.User", "VALeader")
+                    b.HasOne("EX.Core.Domain.User", "Validateur")
                         .WithMany("VersionRFQsEnTantQueValidateur")
-                        .HasForeignKey("VALeaderId")
+                        .HasForeignKey("ValidateurId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("IngenieurRFQ");
@@ -560,7 +558,7 @@ namespace EX.Data.Migrations
 
                     b.Navigation("TestLeader");
 
-                    b.Navigation("VALeader");
+                    b.Navigation("Validateur");
                 });
 
             modelBuilder.Entity("EX.Core.Domain.Client", b =>

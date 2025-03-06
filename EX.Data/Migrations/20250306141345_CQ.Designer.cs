@@ -4,6 +4,7 @@ using EX.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EX.Data.Migrations
 {
     [DbContext(typeof(EXContext))]
-    partial class EXContextModelSnapshot : ModelSnapshot
+    [Migration("20250306141345_CQ")]
+    partial class CQ
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -222,7 +225,7 @@ namespace EX.Data.Migrations
                     b.Property<int?>("TestLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("VALeaderId")
+                    b.Property<int?>("ValidateurId")
                         .HasColumnType("int");
 
                     b.Property<bool>("Valide")
@@ -240,7 +243,7 @@ namespace EX.Data.Migrations
 
                     b.HasIndex("TestLeaderId");
 
-                    b.HasIndex("VALeaderId");
+                    b.HasIndex("ValidateurId");
 
                     b.ToTable("RFQs");
                 });
@@ -382,7 +385,7 @@ namespace EX.Data.Migrations
                     b.Property<int?>("TestLeaderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("VALeaderId")
+                    b.Property<int?>("ValidateurId")
                         .HasColumnType("int");
 
                     b.Property<bool>("Valide")
@@ -400,7 +403,7 @@ namespace EX.Data.Migrations
 
                     b.HasIndex("TestLeaderId");
 
-                    b.HasIndex("VALeaderId");
+                    b.HasIndex("ValidateurId");
 
                     b.ToTable("VersionRFQs");
                 });
@@ -488,9 +491,9 @@ namespace EX.Data.Migrations
                         .HasForeignKey("TestLeaderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EX.Core.Domain.User", "VALeader")
+                    b.HasOne("EX.Core.Domain.User", "Validateur")
                         .WithMany("RFQsEnTantQueValidateur")
-                        .HasForeignKey("VALeaderId")
+                        .HasForeignKey("ValidateurId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
@@ -503,7 +506,7 @@ namespace EX.Data.Migrations
 
                     b.Navigation("TestLeader");
 
-                    b.Navigation("VALeader");
+                    b.Navigation("Validateur");
                 });
 
             modelBuilder.Entity("EX.Core.Domain.Rapport", b =>
@@ -545,9 +548,9 @@ namespace EX.Data.Migrations
                         .HasForeignKey("TestLeaderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EX.Core.Domain.User", "VALeader")
+                    b.HasOne("EX.Core.Domain.User", "Validateur")
                         .WithMany("VersionRFQsEnTantQueValidateur")
-                        .HasForeignKey("VALeaderId")
+                        .HasForeignKey("ValidateurId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("IngenieurRFQ");
@@ -560,7 +563,7 @@ namespace EX.Data.Migrations
 
                     b.Navigation("TestLeader");
 
-                    b.Navigation("VALeader");
+                    b.Navigation("Validateur");
                 });
 
             modelBuilder.Entity("EX.Core.Domain.Client", b =>

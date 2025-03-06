@@ -28,7 +28,7 @@ namespace EX.UI.Web.Controllers
             var versionRFQs = _versionRFQService.GetAll();
             var versionRFQDtos = versionRFQs.Select(v => new VersionRFQSummaryDto
             {
-                CodeV = v.CodeV,
+                CQ = v.CQ,
                 QuoteName = v.QuoteName,
                 NumRefQuoted = v.NumRefQuoted,
                 RFQId = v.RFQId
@@ -49,7 +49,7 @@ namespace EX.UI.Web.Controllers
 
             var versionRFQDto = new VersionRFQDetailsDto
             {
-                CodeV = versionRFQ.CodeV,
+                CQ = versionRFQ.CQ,
                 QuoteName = versionRFQ.QuoteName,
                 NumRefQuoted = versionRFQ.NumRefQuoted,
                 SOPDate = versionRFQ.SOPDate,
@@ -75,8 +75,7 @@ namespace EX.UI.Web.Controllers
                 TestLeader = versionRFQ.TestLeader?.Nom,
                 MarketSegment = versionRFQ.MarketSegment?.Nom,
                 IngenieurRFQ = versionRFQ.IngenieurRFQ?.NomUser,
-                Validateur = versionRFQ.Validateur?.NomUser ,
-
+                VALeader = versionRFQ.VALeader?.NomUser,
             };
 
             return Ok(versionRFQDto);
@@ -99,10 +98,11 @@ namespace EX.UI.Web.Controllers
 
             var versionRFQ = new VersionRFQ
             {
+                CQ = dto.CQ ?? originalRFQ.CQ,
                 QuoteName = dto.QuoteName ?? originalRFQ.QuoteName,
                 NumRefQuoted = dto.NumRefQuoted ?? originalRFQ.NumRefQuoted,
                 SOPDate = dto.SOPDate ?? originalRFQ.SOPDate,
-                MaxV = dto.MaxV ?? originalRFQ.MaxV, 
+                MaxV = dto.MaxV ?? originalRFQ.MaxV,
                 EstV = dto.EstV ?? originalRFQ.EstV,
                 Statut = dto.Statut ?? originalRFQ.Statut,
                 KODate = dto.KODate ?? originalRFQ.KODate,
@@ -114,40 +114,34 @@ namespace EX.UI.Web.Controllers
                 LDDate = dto.LDDate ?? originalRFQ.LDDate,
                 LRDate = dto.LRDate ?? originalRFQ.LRDate,
                 CDDate = dto.CDDate ?? originalRFQ.CDDate,
-                ApprovalDate = dto.ApprovalDate ,
+                ApprovalDate = dto.ApprovalDate,
                 DateCreation = DateTime.UtcNow,
                 RFQId = dto.RFQId,
                 MaterialLeaderId = dto.MaterialLeaderId ?? originalRFQ.MaterialLeaderId,
                 TestLeaderId = dto.TestLeaderId ?? originalRFQ.TestLeaderId,
                 MarketSegmentId = dto.MarketSegmentId ?? originalRFQ.MarketSegmentId,
                 IngenieurRFQId = dto.IngenieurRFQId ?? originalRFQ.IngenieurRFQId,
-                ValidateurId = dto.ValidateurId ?? originalRFQ.ValidateurId ,
+                VALeaderId = dto.VALeaderId ?? originalRFQ.VALeaderId,
                 Valide = dto.Valide ?? originalRFQ.Valide,
                 Rejete = dto.Rejete ?? originalRFQ.Rejete,
-
             };
 
             _versionRFQService.Add(versionRFQ);
-            return CreatedAtAction(nameof(Get), new { id = versionRFQ.CodeV }, versionRFQ);
+            return CreatedAtAction(nameof(Get), new { id = versionRFQ.Id }, versionRFQ);
         }
-
-
 
         // PUT: api/VersionRFQ/{id}
         [HttpPut("{id}")]
         public IActionResult Update(int id, [FromBody] UpdateVersionRFQDto dto)
         {
-            if (id != dto.CodeV)
-            {
-                return BadRequest("VersionRFQ ID mismatch");
-            }
+          
 
             var existingVersionRFQ = _versionRFQService.Get(id);
             if (existingVersionRFQ == null)
             {
                 return NotFound();
             }
-
+            existingVersionRFQ.CQ = dto.CQ ?? existingVersionRFQ.CQ;
             existingVersionRFQ.QuoteName = dto.QuoteName ?? existingVersionRFQ.QuoteName;
             existingVersionRFQ.NumRefQuoted = dto.NumRefQuoted ?? existingVersionRFQ.NumRefQuoted;
             existingVersionRFQ.SOPDate = dto.SOPDate ?? existingVersionRFQ.SOPDate;
@@ -155,7 +149,7 @@ namespace EX.UI.Web.Controllers
             existingVersionRFQ.EstV = dto.EstV ?? existingVersionRFQ.EstV;
             existingVersionRFQ.Statut = dto.Statut ?? existingVersionRFQ.Statut;
             existingVersionRFQ.KODate = dto.KODate ?? existingVersionRFQ.KODate;
-            existingVersionRFQ.CustomerDataDate = dto.CustomerDataDate  ?? existingVersionRFQ.CustomerDataDate;
+            existingVersionRFQ.CustomerDataDate = dto.CustomerDataDate ?? existingVersionRFQ.CustomerDataDate;
             existingVersionRFQ.MDDate = dto.MDDate ?? existingVersionRFQ.MDDate;
             existingVersionRFQ.MRDate = dto.MRDate ?? existingVersionRFQ.MRDate;
             existingVersionRFQ.TDDate = dto.TDDate ?? existingVersionRFQ.TDDate;
@@ -167,7 +161,7 @@ namespace EX.UI.Web.Controllers
             existingVersionRFQ.MaterialLeaderId = dto.MaterialLeaderId ?? existingVersionRFQ.MaterialLeaderId;
             existingVersionRFQ.TestLeaderId = dto.TestLeaderId ?? existingVersionRFQ.TestLeaderId;
             existingVersionRFQ.MarketSegmentId = dto.MarketSegmentId ?? existingVersionRFQ.MarketSegmentId;
-            existingVersionRFQ.ValidateurId = dto.ValidateurId ?? existingVersionRFQ.ValidateurId;
+            existingVersionRFQ.VALeaderId = dto.VALeaderId ?? existingVersionRFQ.VALeaderId;
             existingVersionRFQ.Valide = dto.Valide ?? existingVersionRFQ.Valide;
             existingVersionRFQ.Rejete = dto.Rejete ?? existingVersionRFQ.Rejete;
 
@@ -195,7 +189,8 @@ namespace EX.UI.Web.Controllers
     public class CreateVersionRFQDto
     {
         public int RFQId { get; set; }
-        public string QuoteName { get; set; }
+        public int? CQ { get; set; }
+        public string? QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
         public int? MaxV { get; set; }
@@ -215,14 +210,14 @@ namespace EX.UI.Web.Controllers
         public int? TestLeaderId { get; set; }
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
-        public int? ValidateurId { get; set; }
+        public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
     }
 
     public class UpdateVersionRFQDto
     {
-        public int CodeV { get; set; }
+        public int? CQ { get; set; }
         public string QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
@@ -243,18 +238,16 @@ namespace EX.UI.Web.Controllers
         public int? TestLeaderId { get; set; }
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
-        public int? ValidateurId { get; set; }
+        public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
-
-
     }
 
     public class VersionRFQSummaryDto
     {
-        public int CodeV { get; set; }
+        public int? CQ { get; set; }
         public string QuoteName { get; set; }
-        public int NumRefQuoted { get; set; }
+        public int? NumRefQuoted { get; set; }
         public int RFQId { get; set; }
         public Boolean Valide { get; set; }
         public Boolean Rejete { get; set; }
@@ -263,8 +256,8 @@ namespace EX.UI.Web.Controllers
     public class VersionRFQDetailsDto : VersionRFQSummaryDto
     {
         public DateTime? SOPDate { get; set; }
-        public int MaxV { get; set; }
-        public int EstV { get; set; }
+        public int? MaxV { get; set; }
+        public int? EstV { get; set; }
         public Statut Statut { get; set; }
         public DateTime? KODate { get; set; }
         public DateTime? CustomerDataDate { get; set; }
@@ -282,8 +275,6 @@ namespace EX.UI.Web.Controllers
         public string TestLeader { get; set; }
         public string MarketSegment { get; set; }
         public string IngenieurRFQ { get; set; }
-        public string Validateur { get; set; }
-        public Boolean Valide { get; set; }
-        public Boolean Rejete { get; set; }
+        public string VALeader { get; set; }
     }
 }
