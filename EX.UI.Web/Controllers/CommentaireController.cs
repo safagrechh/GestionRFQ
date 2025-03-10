@@ -151,7 +151,8 @@ namespace EX.UI.Web.Controllers
                     Id = c.Id,
                     Contenu = c.Contenu,
                     DateC = c.DateC,
-                    ValidateurId = c.ValidateurId
+                    ValidateurId = c.ValidateurId ,
+                    NomUser = _userService.Get(c.ValidateurId).NomUser 
                 })
                 .ToList();
 
@@ -195,6 +196,8 @@ namespace EX.UI.Web.Controllers
         public string Contenu { get; set; }
         public DateTime DateC { get; set; }
         public int ValidateurId { get; set; }
+
+        public string? NomUser { get; set; }
     }
 
 }
