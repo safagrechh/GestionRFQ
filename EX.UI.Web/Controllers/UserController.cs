@@ -85,7 +85,8 @@ namespace EX.UI.Web.Controllers
             {
                 Id = user.Id,
                 NomUser = user.NomUser,
-                Email = user.Email
+                Email = user.Email , 
+                Role = user.Role , 
             }).ToList();
             return Ok(userDtos);
         }
@@ -103,7 +104,9 @@ namespace EX.UI.Web.Controllers
             {
                 Id = user.Id,
                 NomUser = user.NomUser,
-                Email = user.Email
+                Email = user.Email ,
+                Role = user.Role ,
+                Password = user.Password ,
             };
 
             return Ok(userDto);
@@ -151,11 +154,10 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-            existingUser.NomUser = dto.NomUser;
-            existingUser.Email = dto.Email;
-            existingUser.Password = dto.Password;
+            existingUser.NomUser = dto.NomUser ?? existingUser.NomUser;
+            existingUser.Email = dto.Email ?? existingUser.Email;
+            existingUser.Password = dto.Password ?? existingUser.Password;
             existingUser.Role = dto.Role;
-
             _userService.Update(existingUser);
 
             return NoContent();
@@ -211,9 +213,9 @@ namespace EX.UI.Web.Controllers
     public class UpdateUserDto
     {
         public int Id { get; set; }
-        public string NomUser { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
+        public string? NomUser { get; set; }
+        public string? Email { get; set; }
+        public string? Password { get; set; }
         public RoleU Role { get; set; }
     }
 
@@ -222,5 +224,9 @@ namespace EX.UI.Web.Controllers
         public int Id { get; set; }
         public string NomUser { get; set; }
         public string Email { get; set; }
+        public RoleU Role { get; set; }
+
+        public string  Password { get; set; }
+
     }
 }

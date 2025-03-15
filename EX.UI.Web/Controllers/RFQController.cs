@@ -193,6 +193,7 @@ namespace EX.UI.Web.Controllers
                 VALeaderId = dto.VALeaderId,
                 Valide = true,
                 Rejete = false,
+                Brouillon = false , 
             };
 
             _rfqService.Add(rfq);
@@ -266,21 +267,48 @@ namespace EX.UI.Web.Controllers
             return NoContent();
         }
 
-       /** [Authorize(Roles = "Validateur,IngenieurRFQ")]
-       [HttpPost("{id}/finaliser")]
-        public IActionResult FinaliserBrouillon(int id)
-        {
-            var rfq = _rfqService.Get(id);
+        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [HttpPut("{id}/finaliser")]
+         public IActionResult FinaliserBrouillon(int id, [FromBody] UpdateRFQDto dto)
+         {
+             var rfq = _rfqService.Get(id);
+             if (rfq == null)
+             {
+                 return NotFound();
+             }
 
-            if (rfq == null || rfq.Statut != Statut.Brouillon)
-                return BadRequest("RFQ non trouvée ou non en brouillon");
+             rfq.CQ = dto.CQ ?? rfq.CQ;
+             rfq.QuoteName = dto.QuoteName ?? rfq.QuoteName;
+             rfq.NumRefQuoted = dto.NumRefQuoted ?? rfq.NumRefQuoted;
+             rfq.SOPDate = dto.SOPDate ?? rfq.SOPDate;
+             rfq.MaxV = dto.MaxV ?? rfq.MaxV;
+             rfq.EstV = dto.EstV ?? rfq.EstV;
+             rfq.KODate = dto.KODate ?? rfq.KODate;
+             rfq.CustomerDataDate = dto.CustomerDataDate ?? rfq.CustomerDataDate;
+             rfq.MDDate = dto.MDDate ?? rfq.MDDate;
+             rfq.MRDate = dto.MRDate ?? rfq.MRDate;
+             rfq.TDDate = dto.TDDate ?? rfq.TDDate;
+             rfq.TRDate = dto.TRDate ?? rfq.TRDate;
+             rfq.LDDate = dto.LDDate ?? rfq.LDDate;
+             rfq.LRDate = dto.LRDate ?? rfq.LRDate;
+             rfq.CDDate = dto.CDDate ?? rfq.CDDate;
+             rfq.ApprovalDate = dto.ApprovalDate ?? rfq.ApprovalDate;
+             rfq.Statut = dto.Statut ?? rfq.Statut;
+             rfq.MaterialLeaderId = dto.MaterialLeaderId ?? rfq.MaterialLeaderId;
+             rfq.TestLeaderId = dto.TestLeaderId ?? rfq.TestLeaderId;
+             rfq.MarketSegmentId = dto.MarketSegmentId ?? rfq.MarketSegmentId;
+             rfq.ClientId = dto.ClientId ?? rfq.ClientId;
+             rfq.IngenieurRFQId = dto.IngenieurRFQId ?? rfq.IngenieurRFQId;
+             rfq.VALeaderId = dto.VALeaderId ?? rfq.VALeaderId;
+             rfq.Valide = false;
+             rfq.Rejete = false;
+             rfq.Brouillon = false;
 
-            rfq.Statut = Statut.Finalise;
-            _rfqService.Update(rfq);
+             _rfqService.Update(rfq);
 
-            return Ok(rfq);
-        }
-        **/
+             return Ok(rfq);
+         }
+         
 
         [Authorize(Roles = "Validateur")]
         [HttpPost("{id}/valider")]
