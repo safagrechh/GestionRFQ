@@ -161,7 +161,7 @@ namespace EX.UI.Web.Controllers
 
 
         [HttpGet("byversionrfq/{versionRfqId}")]
-        public ActionResult<IEnumerable<Commentaire>> GetCommentsByVersionRFQ(int versionRfqId)
+        public ActionResult<IEnumerable<CommentaireDto>> GetCommentsByVersionRFQ(int versionRfqId)
         {
             var commentaires = _commentaireService.GetAll()
                  .Where(c => c.VersionRFQId == versionRfqId)
@@ -170,7 +170,9 @@ namespace EX.UI.Web.Controllers
                      Id = c.Id,
                      Contenu = c.Contenu,
                      DateC = c.DateC,
-                     ValidateurId = c.ValidateurId
+                     ValidateurId = c.ValidateurId ,
+                     NomUser = _userService.Get(c.ValidateurId).NomUser
+
                  })
                  .ToList();
 

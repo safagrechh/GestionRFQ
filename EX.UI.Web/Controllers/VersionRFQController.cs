@@ -1,5 +1,6 @@
 ﻿using EX.Core.Domain;
 using EX.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -49,6 +50,7 @@ namespace EX.UI.Web.Controllers
 
             var versionRFQDto = new VersionRFQDetailsDto
             {
+                Id = versionRFQ.Id,
                 CQ = versionRFQ.CQ,
                 QuoteName = versionRFQ.QuoteName,
                 NumRefQuoted = versionRFQ.NumRefQuoted,
@@ -183,6 +185,64 @@ namespace EX.UI.Web.Controllers
             _versionRFQService.Delete(versionRFQ);
             return NoContent();
         }
+        // GET: api/VersionRFQ/by-rfq/{rfqId}
+        [HttpGet("by-rfq/{rfqId}")]
+        public ActionResult<IEnumerable<VersionRFQSummaryDto>> GetByRFQId(int rfqId)
+        {
+            var versionRFQs = _versionRFQService.GetAll().Where(v => v.RFQId == rfqId).ToList();
+
+            if (!versionRFQs.Any())
+            {
+                return NotFound($"No versions found for RFQ ID {rfqId}.");
+            }
+
+            var versionRFQDtos = versionRFQs.Select(v => new VersionRFQSummaryDto
+            {   Id = v.Id,
+                CQ = v.CQ,
+                QuoteName = v.QuoteName,
+                NumRefQuoted = v.NumRefQuoted,
+                RFQId = v.RFQId,
+                Valide = v.Valide,
+                Rejete = v.Rejete
+            }).ToList();
+
+            return Ok(versionRFQDtos);
+        }
+
+        [Authorize(Roles = "Validateur")]
+        [HttpPost("{id}/valider")]
+        public IActionResult Valider(int id)
+        {
+            var rfq = _versionRFQService.Get(id);
+            if (rfq == null)
+            {
+                return NotFound();
+            }
+
+            rfq.Valide = true;
+            rfq.ApprovalDate = DateTime.UtcNow;
+            _versionRFQService.Update(rfq);
+
+            return Ok(rfq);
+        }
+
+        [Authorize(Roles = "Validateur")]
+        [HttpPost("{id}/rejeter")]
+        public IActionResult Rejeter(int id)
+        {
+            var rfq = _versionRFQService.Get(id);
+            if (rfq == null)
+            {
+                return NotFound();
+            }
+
+
+            rfq.Rejete = true;
+            _versionRFQService.Update(rfq);
+
+            return Ok(rfq);
+        }
+
     }
 
     // DTOs for the VersionRFQ API
@@ -245,6 +305,8 @@ namespace EX.UI.Web.Controllers
 
     public class VersionRFQSummaryDto
     {
+        public int Id { get; set; }
+
         public int? CQ { get; set; }
         public string QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
