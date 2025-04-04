@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EX.UI.Web.Controllers
 {
-    [Authorize(Roles = "IngenieurRFQ , Validateur")]
+    
     [Route("api/[controller]")]
     [ApiController]
     public class RFQController : ControllerBase
@@ -18,7 +18,7 @@ namespace EX.UI.Web.Controllers
             _rfqService = rfqService;
         }
 
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet]
         public ActionResult<IEnumerable<RFQDetailsDto>> GetAll()
         {
@@ -60,7 +60,7 @@ namespace EX.UI.Web.Controllers
             return Ok(rfqDtos);
         }
 
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet("{id}")]
         public ActionResult<RFQDetailsDto> Get(int id)
         {
@@ -176,7 +176,7 @@ namespace EX.UI.Web.Controllers
         }
 
         // Add this endpoint to download the file
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet("{id}/file")]
         public IActionResult DownloadFile(int id)
         {
@@ -285,7 +285,7 @@ namespace EX.UI.Web.Controllers
             rfq.IngenieurRFQId = dto.IngenieurRFQId ?? rfq.IngenieurRFQId;
             rfq.VALeaderId = dto.VALeaderId ?? rfq.VALeaderId;
             rfq.Valide = dto.Valide ?? rfq.Valide;
-            rfq.Rejete = dto.Rejete ?? rfq.Rejete;
+            rfq.Rejete = false;
             rfq.Brouillon = dto.Brouillon ?? rfq.Brouillon;
 
             // Handle file upload if a new file is provided
@@ -343,7 +343,7 @@ namespace EX.UI.Web.Controllers
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {

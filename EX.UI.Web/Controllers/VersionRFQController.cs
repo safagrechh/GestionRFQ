@@ -86,7 +86,7 @@ namespace EX.UI.Web.Controllers
         }
 
         // Add this endpoint to download the file
-        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet("{id}/file")]
         public IActionResult DownloadFile(int id)
         {
