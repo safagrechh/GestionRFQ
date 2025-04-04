@@ -52,7 +52,9 @@ namespace EX.UI.Web.Controllers
                 Valide = r.Valide ,
                 Rejete = r.Rejete ,
                 Brouillon = r.Brouillon,
-                    
+                FileName = r.FileName,
+                FileContentType = r.FileContentType,
+
             }).ToList();
 
             return Ok(rfqDtos);
@@ -97,6 +99,8 @@ namespace EX.UI.Web.Controllers
                 Valide = rfq.Valide ,
                 Rejete = rfq.Rejete ,
                 Brouillon = rfq.Brouillon ,
+                FileName = rfq.FileName,
+                FileContentType = rfq.FileContentType,
 
             };
 
@@ -105,11 +109,11 @@ namespace EX.UI.Web.Controllers
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
         [HttpPost]
-        public ActionResult<RFQ> Create([FromBody] CreateRFQDto dto)
+        public async Task<ActionResult<RFQ>> Create([FromForm] CreateRFQDto dto)
         {
             // Skip validation if Brouillon is true
             if (dto.Brouillon == true)
-            {
+            {   
                 ModelState.Clear();
             }
 
@@ -148,17 +152,48 @@ namespace EX.UI.Web.Controllers
                 Rejete = false,
                 Brouillon = dto.Brouillon,
             };
+            // Handle file upload
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, rfq);
+            }
 
             _rfqService.Add(rfq);
 
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
+        // Add this helper method to handle file uploads
+        private async Task HandleFileUpload(IFormFile file, RFQ rfq)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                await file.CopyToAsync(memoryStream);
+                rfq.FileData = memoryStream.ToArray();
+                rfq.FileName = file.FileName;
+                rfq.FileContentType = file.ContentType;
+            }
+        }
+
+        // Add this endpoint to download the file
+        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [HttpGet("{id}/file")]
+        public IActionResult DownloadFile(int id)
+        {
+            var rfq = _rfqService.Get(id);
+            if (rfq == null || rfq.FileData == null)
+            {
+                return NotFound();
+            }
+
+            return File(rfq.FileData, rfq.FileContentType, rfq.FileName);
+        }
+
 
         [Authorize(Roles = "Validateur")]
         [HttpPost("create-valide")]
 
-        public ActionResult<RFQ> CreateValide([FromBody] CreateRFQDto dto)
+        public async Task<ActionResult<RFQ>> CreateValide([FromForm] CreateRFQDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -195,6 +230,11 @@ namespace EX.UI.Web.Controllers
                 Rejete = false,
                 Brouillon = false , 
             };
+            // Handle file upload
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, rfq);
+            }
 
             _rfqService.Add(rfq);
 
@@ -203,7 +243,7 @@ namespace EX.UI.Web.Controllers
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
         [HttpPut("{id}")]
-        public ActionResult<RFQ> Update(int id, [FromBody] UpdateRFQDto dto)
+        public async Task<ActionResult<RFQ>> Update(int id, [FromForm] UpdateRFQDto dto)
         {
             var rfq = _rfqService.Get(id);
             if (rfq == null)
@@ -248,9 +288,59 @@ namespace EX.UI.Web.Controllers
             rfq.Rejete = dto.Rejete ?? rfq.Rejete;
             rfq.Brouillon = dto.Brouillon ?? rfq.Brouillon;
 
+            // Handle file upload if a new file is provided
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, rfq);
+            }
             _rfqService.Update(rfq);
 
             return Ok(rfq);
+        }
+
+        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [HttpPost("draft")]
+        public async Task<ActionResult<RFQ>> CreateDraft([FromForm] CreateRFQDraftDto dto)
+        {
+            // No validation - all fields are optional for drafts
+            var rfq = new RFQ
+            {
+                CQ = dto.CQ,
+                QuoteName = dto.QuoteName ?? "DRAFT-" + Guid.NewGuid().ToString()[..8],
+                NumRefQuoted = dto.NumRefQuoted,
+                SOPDate = dto.SOPDate,
+                MaxV = dto.MaxV,
+                EstV = dto.EstV,
+                Statut = Statut.NotStarted, // Default for drafts
+                KODate = dto.KODate,
+                CustomerDataDate = dto.CustomerDataDate,
+                MDDate = dto.MDDate,
+                MRDate = dto.MRDate,
+                TDDate = dto.TDDate,
+                TRDate = dto.TRDate,
+                LDDate = dto.LDDate,
+                LRDate = dto.LRDate,
+                CDDate = dto.CDDate,
+                ApprovalDate = null,
+                DateCreation = DateTime.UtcNow,
+                MaterialLeaderId = dto.MaterialLeaderId,
+                TestLeaderId = dto.TestLeaderId,
+                MarketSegmentId = dto.MarketSegmentId,
+                ClientId = dto.ClientId,
+                IngenieurRFQId = dto.IngenieurRFQId,
+                VALeaderId = dto.VALeaderId,
+                Valide = false,
+                Rejete = false,
+                Brouillon = true
+            };
+
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, rfq);
+            }
+
+            _rfqService.Add(rfq);
+            return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
@@ -401,6 +491,7 @@ namespace EX.UI.Web.Controllers
         public int? ClientId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? VALeaderId { get; set; }
+        public IFormFile? File { get; set; }
         public Boolean Brouillon { get; set; }
     }
 
@@ -432,6 +523,7 @@ namespace EX.UI.Web.Controllers
         public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
+        public IFormFile? File { get; set; }
         public Boolean? Brouillon { get; set; }
 
 
@@ -469,11 +561,39 @@ namespace EX.UI.Web.Controllers
 
         public Boolean Brouillon { get; set; }
 
+        public string? FileName { get; set; }
+        public string? FileContentType { get; set; }
+        public byte[]? FileData { get; set; }
+
 
     }
 
 
-
+    public class CreateRFQDraftDto
+    {
+        public int? CQ { get; set; }
+        public string? QuoteName { get; set; }
+        public int? NumRefQuoted { get; set; }
+        public DateTime? SOPDate { get; set; }
+        public int? MaxV { get; set; }
+        public int? EstV { get; set; }
+        public DateTime? KODate { get; set; }
+        public DateTime? CustomerDataDate { get; set; }
+        public DateTime? MDDate { get; set; }
+        public DateTime? MRDate { get; set; }
+        public DateTime? TDDate { get; set; }
+        public DateTime? TRDate { get; set; }
+        public DateTime? LDDate { get; set; }
+        public DateTime? LRDate { get; set; }
+        public DateTime? CDDate { get; set; }
+        public int? MaterialLeaderId { get; set; }
+        public int? TestLeaderId { get; set; }
+        public int? MarketSegmentId { get; set; }
+        public int? ClientId { get; set; }
+        public int? IngenieurRFQId { get; set; }
+        public int? VALeaderId { get; set; }
+        public IFormFile? File { get; set; }
+    }
 
 
 }

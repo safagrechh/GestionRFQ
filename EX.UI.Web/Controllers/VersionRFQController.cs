@@ -78,14 +78,30 @@ namespace EX.UI.Web.Controllers
                 MarketSegment = versionRFQ.MarketSegment?.Nom,
                 IngenieurRFQ = versionRFQ.IngenieurRFQ?.NomUser,
                 VALeader = versionRFQ.VALeader?.NomUser,
+                FileName = versionRFQ.FileName,
+                FileContentType = versionRFQ.FileContentType,
             };
 
             return Ok(versionRFQDto);
         }
 
+        // Add this endpoint to download the file
+        [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [HttpGet("{id}/file")]
+        public IActionResult DownloadFile(int id)
+        {
+            var version = _versionRFQService.Get(id);
+            if (version == null || version.FileData == null)
+            {
+                return NotFound();
+            }
+
+            return File(version.FileData, version.FileContentType, version.FileName);
+        }
+
         // POST: api/VersionRFQ
         [HttpPost]
-        public ActionResult<VersionRFQ> Create([FromBody] CreateVersionRFQDto dto)
+        public async Task<ActionResult<VersionRFQ>> Create([FromForm] CreateVersionRFQDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -128,13 +144,32 @@ namespace EX.UI.Web.Controllers
                 Rejete = dto.Rejete ?? originalRFQ.Rejete,
             };
 
+            // Handle file upload
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, versionRFQ);
+            }
+
             _versionRFQService.Add(versionRFQ);
             return CreatedAtAction(nameof(Get), new { id = versionRFQ.Id }, versionRFQ);
         }
 
+
+        // Add this helper method to handle file uploads
+        private async Task HandleFileUpload(IFormFile file, VersionRFQ versionRFQ)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                await file.CopyToAsync(memoryStream);
+                versionRFQ.FileData = memoryStream.ToArray();
+                versionRFQ.FileName = file.FileName;
+                versionRFQ.FileContentType = file.ContentType;
+            }
+        }
+
         // PUT: api/VersionRFQ/{id}
         [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] UpdateVersionRFQDto dto)
+        public async Task<ActionResult<VersionRFQ>> Update(int id, [FromBody] UpdateVersionRFQDto dto)
         {
           
 
@@ -166,6 +201,11 @@ namespace EX.UI.Web.Controllers
             existingVersionRFQ.VALeaderId = dto.VALeaderId ?? existingVersionRFQ.VALeaderId;
             existingVersionRFQ.Valide = dto.Valide ?? existingVersionRFQ.Valide;
             existingVersionRFQ.Rejete = dto.Rejete ?? existingVersionRFQ.Rejete;
+            // Handle file upload
+            if (dto.File != null && dto.File.Length > 0)
+            {
+                await HandleFileUpload(dto.File, existingVersionRFQ);
+            }
 
             _versionRFQService.Update(existingVersionRFQ);
 
@@ -273,6 +313,8 @@ namespace EX.UI.Web.Controllers
         public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
+
+        public IFormFile? File { get; set; }
     }
 
     public class UpdateVersionRFQDto
@@ -301,6 +343,8 @@ namespace EX.UI.Web.Controllers
         public int? VALeaderId { get; set; }
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
+        public IFormFile? File { get; set; }
+
     }
 
     public class VersionRFQSummaryDto
@@ -338,5 +382,10 @@ namespace EX.UI.Web.Controllers
         public string MarketSegment { get; set; }
         public string IngenieurRFQ { get; set; }
         public string VALeader { get; set; }
+
+        public string? FileName { get; set; }
+        public string? FileContentType { get; set; }
+        public byte[]? FileData { get; set; }
+
     }
 }

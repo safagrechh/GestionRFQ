@@ -4,6 +4,7 @@ using EX.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EX.Data.Migrations
 {
     [DbContext(typeof(EXContext))]
-    partial class EXContextModelSnapshot : ModelSnapshot
+    [Migration("20250331204242_AddFilePropertiesToRFQ")]
+    partial class AddFilePropertiesToRFQ
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -335,15 +338,6 @@ namespace EX.Data.Migrations
 
                     b.Property<int?>("EstV")
                         .HasColumnType("int");
-
-                    b.Property<string>("FileContentType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("FileData")
-                        .HasColumnType("varbinary(max)");
-
-                    b.Property<string>("FileName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("IngenieurRFQId")
                         .HasColumnType("int");
