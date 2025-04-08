@@ -80,6 +80,7 @@ namespace EX.UI.Web.Controllers
                 VALeader = versionRFQ.VALeader?.NomUser,
                 FileName = versionRFQ.FileName,
                 FileContentType = versionRFQ.FileContentType,
+                Client = versionRFQ.Client?.Nom,
             };
 
             return Ok(versionRFQDto);
@@ -140,14 +141,21 @@ namespace EX.UI.Web.Controllers
                 MarketSegmentId = dto.MarketSegmentId ?? originalRFQ.MarketSegmentId,
                 IngenieurRFQId = dto.IngenieurRFQId ?? originalRFQ.IngenieurRFQId,
                 VALeaderId = dto.VALeaderId ?? originalRFQ.VALeaderId,
+                ClientId = dto.ClientId ?? originalRFQ.ClientId,
                 Valide = dto.Valide ?? originalRFQ.Valide,
                 Rejete = dto.Rejete ?? originalRFQ.Rejete,
             };
 
-            // Handle file upload
+            // Handle file upload - use new file if provided, otherwise inherit from RFQ if available
             if (dto.File != null && dto.File.Length > 0)
             {
                 await HandleFileUpload(dto.File, versionRFQ);
+            }
+            else if (originalRFQ.FileData != null)
+            {
+                versionRFQ.FileData = originalRFQ.FileData;
+                versionRFQ.FileName = originalRFQ.FileName;
+                versionRFQ.FileContentType = originalRFQ.FileContentType;
             }
 
             _versionRFQService.Add(versionRFQ);
@@ -169,22 +177,20 @@ namespace EX.UI.Web.Controllers
 
         // PUT: api/VersionRFQ/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult<VersionRFQ>> Update(int id, [FromBody] UpdateVersionRFQDto dto)
+        public async Task<ActionResult<VersionRFQ>> Update(int id, [FromForm] UpdateVersionRFQDto dto)
         {
-          
-
             var existingVersionRFQ = _versionRFQService.Get(id);
             if (existingVersionRFQ == null)
             {
                 return NotFound();
             }
+
             existingVersionRFQ.CQ = dto.CQ ?? existingVersionRFQ.CQ;
             existingVersionRFQ.QuoteName = dto.QuoteName ?? existingVersionRFQ.QuoteName;
             existingVersionRFQ.NumRefQuoted = dto.NumRefQuoted ?? existingVersionRFQ.NumRefQuoted;
             existingVersionRFQ.SOPDate = dto.SOPDate ?? existingVersionRFQ.SOPDate;
             existingVersionRFQ.MaxV = dto.MaxV ?? existingVersionRFQ.MaxV;
             existingVersionRFQ.EstV = dto.EstV ?? existingVersionRFQ.EstV;
-            existingVersionRFQ.Statut = dto.Statut ?? existingVersionRFQ.Statut;
             existingVersionRFQ.KODate = dto.KODate ?? existingVersionRFQ.KODate;
             existingVersionRFQ.CustomerDataDate = dto.CustomerDataDate ?? existingVersionRFQ.CustomerDataDate;
             existingVersionRFQ.MDDate = dto.MDDate ?? existingVersionRFQ.MDDate;
@@ -199,16 +205,17 @@ namespace EX.UI.Web.Controllers
             existingVersionRFQ.TestLeaderId = dto.TestLeaderId ?? existingVersionRFQ.TestLeaderId;
             existingVersionRFQ.MarketSegmentId = dto.MarketSegmentId ?? existingVersionRFQ.MarketSegmentId;
             existingVersionRFQ.VALeaderId = dto.VALeaderId ?? existingVersionRFQ.VALeaderId;
+            existingVersionRFQ.ClientId = dto.ClientId ?? existingVersionRFQ.ClientId;
             existingVersionRFQ.Valide = dto.Valide ?? existingVersionRFQ.Valide;
-            existingVersionRFQ.Rejete = dto.Rejete ?? existingVersionRFQ.Rejete;
-            // Handle file upload
+            existingVersionRFQ.Rejete = false;
+
+            // Handle file upload - only update if new file is provided, otherwise keep existing file
             if (dto.File != null && dto.File.Length > 0)
             {
                 await HandleFileUpload(dto.File, existingVersionRFQ);
             }
 
             _versionRFQService.Update(existingVersionRFQ);
-
             return NoContent();
         }
 
@@ -311,10 +318,13 @@ namespace EX.UI.Web.Controllers
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? VALeaderId { get; set; }
+        public int? ClientId { get; set; }
+
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
 
         public IFormFile? File { get; set; }
+        
     }
 
     public class UpdateVersionRFQDto
@@ -325,7 +335,6 @@ namespace EX.UI.Web.Controllers
         public DateTime? SOPDate { get; set; }
         public int? MaxV { get; set; }
         public int? EstV { get; set; }
-        public Statut? Statut { get; set; }
         public DateTime? KODate { get; set; }
         public DateTime? CustomerDataDate { get; set; }
         public DateTime? MDDate { get; set; }
@@ -341,8 +350,13 @@ namespace EX.UI.Web.Controllers
         public int? MarketSegmentId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? VALeaderId { get; set; }
+        public int? ClientId { get; set; }
+
+
         public Boolean? Valide { get; set; }
         public Boolean? Rejete { get; set; }
+        
+
         public IFormFile? File { get; set; }
 
     }
@@ -382,6 +396,8 @@ namespace EX.UI.Web.Controllers
         public string MarketSegment { get; set; }
         public string IngenieurRFQ { get; set; }
         public string VALeader { get; set; }
+
+        public string Client { get; set; }
 
         public string? FileName { get; set; }
         public string? FileContentType { get; set; }

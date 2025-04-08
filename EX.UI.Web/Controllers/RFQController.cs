@@ -54,6 +54,9 @@ namespace EX.UI.Web.Controllers
                 Brouillon = r.Brouillon,
                 FileName = r.FileName,
                 FileContentType = r.FileContentType,
+                VersionsCount = r.Versions?.Count ?? 0 // Changed to return count instead of versions
+
+
 
             }).ToList();
 
@@ -101,6 +104,7 @@ namespace EX.UI.Web.Controllers
                 Brouillon = rfq.Brouillon ,
                 FileName = rfq.FileName,
                 FileContentType = rfq.FileContentType,
+                VersionsCount = rfq.Versions?.Count ?? 0 // Changed to return count instead of versions
 
             };
 
@@ -261,6 +265,8 @@ namespace EX.UI.Web.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            // Update properties
             rfq.CQ = dto.CQ ?? rfq.CQ;
             rfq.QuoteName = dto.QuoteName ?? rfq.QuoteName;
             rfq.NumRefQuoted = dto.NumRefQuoted ?? rfq.NumRefQuoted;
@@ -293,9 +299,16 @@ namespace EX.UI.Web.Controllers
             {
                 await HandleFileUpload(dto.File, rfq);
             }
+
             _rfqService.Update(rfq);
 
-            return Ok(rfq);
+            // Return a proper response
+            return Ok(new
+            {
+                success = true,
+                message = "RFQ updated successfully",
+                data = rfq
+            });
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
@@ -401,7 +414,7 @@ namespace EX.UI.Web.Controllers
          
 
         [Authorize(Roles = "Validateur")]
-        [HttpPost("{id}/valider")]
+        [HttpPut("{id}/valider")]
         public IActionResult Valider(int id)
         {
             var rfq = _rfqService.Get(id);
@@ -418,7 +431,7 @@ namespace EX.UI.Web.Controllers
         }
 
         [Authorize(Roles = "Validateur")]
-        [HttpPost("{id}/rejeter")]
+        [HttpPut("{id}/rejeter")]
         public IActionResult Rejeter(int id)
         {
             var rfq = _rfqService.Get(id);
@@ -565,6 +578,7 @@ namespace EX.UI.Web.Controllers
         public string? FileContentType { get; set; }
         public byte[]? FileData { get; set; }
 
+        public int VersionsCount { get; set; }
 
     }
 
