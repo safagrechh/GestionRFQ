@@ -4,6 +4,7 @@ using EX.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EX.Data.Migrations
 {
     [DbContext(typeof(EXContext))]
-    partial class EXContextModelSnapshot : ModelSnapshot
+    [Migration("20250410221327_statut")]
+    partial class statut
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -379,6 +382,7 @@ namespace EX.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("QuoteName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("RFQId")

@@ -100,14 +100,15 @@ namespace EX.UI.Web.Controllers
             return File(version.FileData, version.FileContentType, version.FileName);
         }
 
+
+      
         // POST: api/VersionRFQ
         [HttpPost]
         public async Task<ActionResult<VersionRFQ>> Create([FromForm] CreateVersionRFQDto dto)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
-            }
+                ModelState.Clear();
 
             var originalRFQ = _rfqService.Get(dto.RFQId);
             if (originalRFQ == null)
@@ -160,6 +161,18 @@ namespace EX.UI.Web.Controllers
 
             _versionRFQService.Add(versionRFQ);
             return CreatedAtAction(nameof(Get), new { id = versionRFQ.Id }, versionRFQ);
+
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, new
+                {
+                    Title = "Server Error",
+                    Message = ex.Message,
+                    Details = ex.StackTrace
+                });
+            }
         }
 
 
@@ -378,7 +391,7 @@ namespace EX.UI.Web.Controllers
         public DateTime? SOPDate { get; set; }
         public int? MaxV { get; set; }
         public int? EstV { get; set; }
-        public Statut Statut { get; set; }
+        public Statut? Statut { get; set; }
         public DateTime? KODate { get; set; }
         public DateTime? CustomerDataDate { get; set; }
         public DateTime? MDDate { get; set; }

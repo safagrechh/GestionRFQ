@@ -1,5 +1,6 @@
 ﻿using EX.Core.Domain;
 using EX.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,6 +55,7 @@ namespace EX.UI.Web.Controllers
         }
 
         // POST: api/Worker/create-material
+        [Authorize(Roles = "Admin")]
         [HttpPost("create-materialLeader")]
         public ActionResult<WorkerDto> CreateMaterialWorker([FromBody] CreateWorkerDto dto)
         {
@@ -81,6 +83,8 @@ namespace EX.UI.Web.Controllers
         }
 
         // POST: api/Worker/create-test
+        [Authorize(Roles = "Admin")]
+
         [HttpPost("create-testLeader")]
         public ActionResult<WorkerDto> CreateTestWorker([FromBody] CreateWorkerDto dto)
         {
@@ -108,6 +112,8 @@ namespace EX.UI.Web.Controllers
         }
 
         // PUT: api/Worker/{id}
+        [Authorize(Roles = "Admin")]
+
         [HttpPut("{id}")]
         public IActionResult Update(int id, [FromBody] UpdateWorkerDto dto)
         {
@@ -140,6 +146,8 @@ namespace EX.UI.Web.Controllers
 
 
         // DELETE: api/Worker/{id}
+        [Authorize(Roles = "Admin")]
+
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {

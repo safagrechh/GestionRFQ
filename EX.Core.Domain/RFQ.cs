@@ -7,14 +7,14 @@ namespace EX.Core.Domain
 {
     public enum Statut
     {
-        Complete, InProgress, NotStarted
+           Win, Loss
     }
 
     public class RFQ
     {
        
         public int Id { get; set; }
-        public int? CQ { get; set; }
+        public int CQ { get; set; }
 
         public string? QuoteName { get; set; }
 
@@ -48,7 +48,7 @@ namespace EX.Core.Domain
 
         public DateTime DateCreation { get; set; }
 
-        public Statut Statut { get; set; }
+        public Statut? Statut { get; set; }
 
         public Boolean Valide { get; set; }
 
@@ -67,8 +67,8 @@ namespace EX.Core.Domain
         public virtual MarketSegment? MarketSegment { get; set; }
         public int? MarketSegmentId { get; set; }
 
-        public virtual Client? Client { get; set; }
-        public int? ClientId { get; set; }
+        public virtual Client Client { get; set; }
+        public int ClientId { get; set; }
 
         public virtual IList<Commentaire>? Commentaires { get; set; }
         public virtual IList<VersionRFQ>? Versions { get; set; }

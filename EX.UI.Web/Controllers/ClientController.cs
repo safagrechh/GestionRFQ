@@ -147,7 +147,7 @@ namespace EX.UI.Web.Controllers
 
     public class RFQSummaryDto
     {
-         public int? CQ { get; set; }
+         public int CQ { get; set; }
         public string QuoteName { get; set; }
         
     }

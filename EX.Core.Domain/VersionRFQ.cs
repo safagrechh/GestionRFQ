@@ -13,8 +13,8 @@ namespace EX.Core.Domain
     {
         
         public int Id { get; set; }
-        public int? CQ { get; set; }
-        public string QuoteName { get; set; }
+        public int CQ { get; set; }
+        public string? QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
         public int? MaxV { get; set; }
@@ -31,7 +31,7 @@ namespace EX.Core.Domain
         public DateTime? CDDate { get; set; }
         public DateTime? ApprovalDate { get; set; }
         public DateTime DateCreation { get; set; }
-        public Statut Statut { get; set; }
+        public Statut? Statut { get; set; }
         public Boolean Valide { get; set; }
 
         public Boolean Rejete { get; set; }
@@ -65,8 +65,8 @@ namespace EX.Core.Domain
         public virtual User VALeader { get; set; }
         public int? VALeaderId { get; set; }
 
-        public virtual Client? Client { get; set; }
-        public int? ClientId { get; set; }
+        public virtual Client Client { get; set; }
+        public int ClientId { get; set; }
 
         public string? FileName { get; set; }
         public string? FileContentType { get; set; }

@@ -115,8 +115,10 @@ namespace EX.UI.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<RFQ>> Create([FromForm] CreateRFQDto dto)
         {
-            // Skip validation if Brouillon is true
-            if (dto.Brouillon == true)
+            try
+            {
+                // Skip validation if Brouillon is true
+                if (dto.Brouillon == true)
             {   
                 ModelState.Clear();
             }
@@ -134,7 +136,7 @@ namespace EX.UI.Web.Controllers
                 SOPDate = dto.SOPDate,
                 MaxV = dto.MaxV,
                 EstV = dto.EstV,
-                Statut = dto.Statut ?? Statut.NotStarted, // Default to NotStarted
+                Statut = null,
                 KODate = dto.KODate,
                 CustomerDataDate = dto.CustomerDataDate,
                 MDDate = dto.MDDate,
@@ -165,6 +167,17 @@ namespace EX.UI.Web.Controllers
             _rfqService.Add(rfq);
 
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, new
+                {
+                    Title = "Server Error",
+                    Message = ex.Message,
+                    Details = ex.StackTrace
+                });
+            }
         }
 
         // Add this helper method to handle file uploads
@@ -212,7 +225,7 @@ namespace EX.UI.Web.Controllers
                 SOPDate = dto.SOPDate,
                 MaxV = dto.MaxV,
                 EstV = dto.EstV,
-                Statut = dto.Statut ?? Statut.NotStarted, // Default to Brouillon
+                Statut = null, 
                 KODate = dto.KODate,
                 CustomerDataDate = dto.CustomerDataDate,
                 MDDate = dto.MDDate,
@@ -312,6 +325,45 @@ namespace EX.UI.Web.Controllers
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
+        [HttpPut("{id}/update-statut")]
+        public IActionResult UpdateStatut(int id, [FromBody] UpdateStatutDto dto)
+        {
+            var rfq = _rfqService.Get(id);
+            if (rfq == null)
+            {
+                return NotFound();
+            }
+
+            // Validate the statut value
+            if (!Enum.IsDefined(typeof(Statut), dto.Statut))
+            {
+                return BadRequest($"Invalid statut value. Valid values are: {string.Join(", ", Enum.GetNames(typeof(Statut)))}");
+            }
+
+            // Only update the Statut field
+            rfq.Statut = dto.Statut;
+
+            _rfqService.Update(rfq);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Statut updated successfully",
+                data = new
+                {
+                    id = rfq.Id,
+                    newStatut = rfq.Statut.ToString()
+                }
+            });
+        }
+
+        // DTO for updating only the Statut
+        public class UpdateStatutDto
+        {
+            public Statut Statut { get; set; }
+        }
+
+        [Authorize(Roles = "Validateur,IngenieurRFQ")]
         [HttpPost("draft")]
         public async Task<ActionResult<RFQ>> CreateDraft([FromForm] CreateRFQDraftDto dto)
         {
@@ -324,7 +376,7 @@ namespace EX.UI.Web.Controllers
                 SOPDate = dto.SOPDate,
                 MaxV = dto.MaxV,
                 EstV = dto.EstV,
-                Statut = Statut.NotStarted, // Default for drafts
+                Statut = null, // Default for drafts
                 KODate = dto.KODate,
                 CustomerDataDate = dto.CustomerDataDate,
                 MDDate = dto.MDDate,
@@ -480,8 +532,8 @@ namespace EX.UI.Web.Controllers
     }
     public class CreateRFQDto
     {
-        public int? CQ { get; set; }
-        public string QuoteName { get; set; }
+        public int CQ { get; set; }
+        public string? QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }  // Nullable for empty fields
         public DateTime? SOPDate { get; set; }  // Nullable for empty fields
         public int? MaxV { get; set; }  // Nullable for empty fields
@@ -501,7 +553,7 @@ namespace EX.UI.Web.Controllers
         public int? MaterialLeaderId { get; set; }
         public int? TestLeaderId { get; set; }
         public int? MarketSegmentId { get; set; }
-        public int? ClientId { get; set; }
+        public int ClientId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? VALeaderId { get; set; }
         public IFormFile? File { get; set; }
@@ -561,7 +613,7 @@ namespace EX.UI.Web.Controllers
         public DateTime? ApprovalDate { get; set; }
        
         public DateTime DateCreation { get; set; }
-        public Statut Statut { get; set; }
+        public Statut? Statut { get; set; }
         public string MaterialLeader { get; set; }
         public string TestLeader { get; set; }
         public string MarketSegment { get; set; }
@@ -585,7 +637,7 @@ namespace EX.UI.Web.Controllers
 
     public class CreateRFQDraftDto
     {
-        public int? CQ { get; set; }
+        public int CQ { get; set; }
         public string? QuoteName { get; set; }
         public int? NumRefQuoted { get; set; }
         public DateTime? SOPDate { get; set; }
@@ -603,7 +655,7 @@ namespace EX.UI.Web.Controllers
         public int? MaterialLeaderId { get; set; }
         public int? TestLeaderId { get; set; }
         public int? MarketSegmentId { get; set; }
-        public int? ClientId { get; set; }
+        public int ClientId { get; set; }
         public int? IngenieurRFQId { get; set; }
         public int? VALeaderId { get; set; }
         public IFormFile? File { get; set; }
