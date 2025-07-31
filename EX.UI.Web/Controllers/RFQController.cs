@@ -261,7 +261,11 @@ namespace EX.UI.Web.Controllers
         [Authorize(Roles = "Validateur,IngenieurRFQ")]
         [HttpPut("{id}")]
         public async Task<ActionResult<RFQ>> Update(int id, [FromForm] UpdateRFQDto dto)
-        {
+        {   if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var rfq = _rfqService.Get(id);
             if (rfq == null)
             {
@@ -274,10 +278,7 @@ namespace EX.UI.Web.Controllers
                 ModelState.ClearValidationState(nameof(UpdateRFQDto));
             }
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            
 
             // Update properties
             rfq.CQ = dto.CQ ?? rfq.CQ;
