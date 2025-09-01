@@ -14,6 +14,7 @@ namespace EX.Data
         public DbSet<HistoriqueAction> HistoriqueActions { get; set; }
         public DbSet<Commentaire> Commentaires { get; set; }
         public DbSet<Rapport> Rapports { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         public EXContext(DbContextOptions<EXContext> options) : base(options)
         {

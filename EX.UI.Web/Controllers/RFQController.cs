@@ -1,8 +1,10 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using EX.Core.Services;
+using EX.UI.Web.Hubs;
 using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EX.UI.Web.Controllers
 {
@@ -12,10 +14,15 @@ namespace EX.UI.Web.Controllers
     public class RFQController : ControllerBase
     {
         private readonly IService<RFQ> _rfqService;
+        private readonly IService<Notification> _notificationService;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public RFQController(IService<RFQ> rfqService)
+        public RFQController(IService<RFQ> rfqService , IService<Notification> notificationService,
+        IHubContext<NotificationHub> hub)
         {
             _rfqService = rfqService;
+            _notificationService = notificationService;
+            _hub = hub;
         }
 
         [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
@@ -62,6 +69,7 @@ namespace EX.UI.Web.Controllers
 
             return Ok(rfqDtos);
         }
+
 
         [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet("{id}")]
@@ -166,7 +174,35 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
-            return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
+                // Create DB notification for the RFQ engineer (if assigned)
+                if (rfq.IngenieurRFQId.HasValue)
+                {
+                    var message = $"Nouvelle RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) vous a été assignée.";
+
+                    var notif = new Notification
+                    {
+                        RFQId = rfq.Id,
+                        UserId = rfq.IngenieurRFQId.Value,
+                        Message = message,
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false
+                    };
+
+                    _notificationService.Add(notif);
+
+                    // 🔥 Real-time push to that engineer via SignalR
+                    // SignalR user id is the NameIdentifier claim => should match your JWT user Id
+                    await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
+                        .SendAsync("ReceiveNotification", new
+                        {
+                            id = notif.Id,
+                            rfqId = notif.RFQId,
+                            message = notif.Message,
+                            createdAt = notif.CreatedAt
+                        });
+                }
+
+                return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
             }
             catch (Exception ex)
             {
@@ -315,6 +351,33 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Update(rfq);
+
+            // Create notification for the RFQ engineer if assigned
+            if (rfq.IngenieurRFQId.HasValue)
+            {
+                var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été mise à jour.";
+
+                var notif = new Notification
+                {
+                    RFQId = rfq.Id,
+                    UserId = rfq.IngenieurRFQId.Value,
+                    Message = message,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _notificationService.Add(notif);
+
+                // Send real-time notification via SignalR
+                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
+                    .SendAsync("ReceiveNotification", new
+                    {
+                        id = notif.Id,
+                        rfqId = notif.RFQId,
+                        message = notif.Message,
+                        createdAt = notif.CreatedAt
+                    });
+            }
 
             // Return a proper response
             return Ok(new
@@ -468,7 +531,7 @@ namespace EX.UI.Web.Controllers
 
         [Authorize(Roles = "Validateur")]
         [HttpPut("{id}/valider")]
-        public IActionResult Valider(int id)
+        public async Task<IActionResult> Valider(int id)
         {
             var rfq = _rfqService.Get(id);
             if (rfq == null)
@@ -476,16 +539,43 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-            rfq.Valide = true ;
+            rfq.Valide = true;
             rfq.ApprovalDate = DateTime.UtcNow;
             _rfqService.Update(rfq);
+
+            // Create notification for the RFQ engineer if assigned
+            if (rfq.IngenieurRFQId.HasValue)
+            {
+                var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée.";
+
+                var notif = new Notification
+                {
+                    RFQId = rfq.Id,
+                    UserId = rfq.IngenieurRFQId.Value,
+                    Message = message,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _notificationService.Add(notif);
+
+                // Send real-time notification via SignalR
+                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
+                    .SendAsync("ReceiveNotification", new
+                    {
+                        id = notif.Id,
+                        rfqId = notif.RFQId,
+                        message = notif.Message,
+                        createdAt = notif.CreatedAt
+                    });
+            }
 
             return Ok(rfq);
         }
 
         [Authorize(Roles = "Validateur")]
         [HttpPut("{id}/rejeter")]
-        public IActionResult Rejeter(int id)
+        public async Task<IActionResult> Rejeter(int id)
         {
             var rfq = _rfqService.Get(id);
             if (rfq == null)
@@ -493,9 +583,35 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-
             rfq.Rejete = true;
             _rfqService.Update(rfq);
+
+            // Create notification for the RFQ engineer if assigned
+            if (rfq.IngenieurRFQId.HasValue)
+            {
+                var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été rejetée.";
+
+                var notif = new Notification
+                {
+                    RFQId = rfq.Id,
+                    UserId = rfq.IngenieurRFQId.Value,
+                    Message = message,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _notificationService.Add(notif);
+
+                // Send real-time notification via SignalR
+                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
+                    .SendAsync("ReceiveNotification", new
+                    {
+                        id = notif.Id,
+                        rfqId = notif.RFQId,
+                        message = notif.Message,
+                        createdAt = notif.CreatedAt
+                    });
+            }
 
             return Ok(rfq);
         }
