@@ -1,4 +1,4 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -29,6 +29,8 @@ namespace EX.Core.Services
               new Claim(JwtRegisteredClaimNames.Sub, user.Email),
               new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
               new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+              new Claim(ClaimTypes.Name, user.NomUser ?? user.Email),
+              new Claim("name", user.NomUser ?? user.Email),
               new Claim(ClaimTypes.Role, user.Role.ToString())
     };
 

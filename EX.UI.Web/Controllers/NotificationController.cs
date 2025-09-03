@@ -58,6 +58,7 @@ namespace EX.UI.Web.Controllers
                     n.IsRead,
                     n.RFQId,
                     n.UserId,
+                    n.ActionUserName,
                     RFQTitle = n.RFQ?.QuoteName ?? "Unknown"
                 });
 
@@ -79,8 +80,14 @@ namespace EX.UI.Web.Controllers
                     return BadRequest("Invalid notification data");
                 }
 
+                // Get the name of the user performing the action from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Unknown User";
+
                 var notification = _notificationService.CreateNotification(
-                    request.Message, request.UserId, request.RFQId);
+                    request.Message, request.UserId, request.RFQId, actionUserName);
 
                 return Ok(new { message = "Notification created successfully", notificationId = notification.Id });
             }

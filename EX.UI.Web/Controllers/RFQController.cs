@@ -5,6 +5,8 @@ using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EX.UI.Web.Controllers
 {
@@ -14,10 +16,10 @@ namespace EX.UI.Web.Controllers
     public class RFQController : ControllerBase
     {
         private readonly IService<RFQ> _rfqService;
-        private readonly IService<Notification> _notificationService;
+        private readonly INotificationService _notificationService;
         private readonly IHubContext<NotificationHub> _hub;
 
-        public RFQController(IService<RFQ> rfqService , IService<Notification> notificationService,
+        public RFQController(IService<RFQ> rfqService , INotificationService notificationService,
         IHubContext<NotificationHub> hub)
         {
             _rfqService = rfqService;
@@ -174,32 +176,22 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
-                // Create DB notification for the RFQ engineer (if assigned)
-                if (rfq.IngenieurRFQId.HasValue)
+                // Get the current user's ID and name from JWT claims
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
+
+                // Always notify all Validateurs for every RFQ creation
+                var validateurMessage = $"Nouvelle RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) créée par {actionUserName}.";
+                await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", rfq.Id, actionUserName);
+
+                // Also notify the assigned engineer if there is one and it's not the current user
+                if (rfq.IngenieurRFQId.HasValue && int.TryParse(currentUserIdClaim, out int currentUserId) && currentUserId != rfq.IngenieurRFQId.Value)
                 {
-                    var message = $"Nouvelle RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) vous a été assignée.";
-
-                    var notif = new Notification
-                    {
-                        RFQId = rfq.Id,
-                        UserId = rfq.IngenieurRFQId.Value,
-                        Message = message,
-                        CreatedAt = DateTime.UtcNow,
-                        IsRead = false
-                    };
-
-                    _notificationService.Add(notif);
-
-                    // 🔥 Real-time push to that engineer via SignalR
-                    // SignalR user id is the NameIdentifier claim => should match your JWT user Id
-                    await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
-                        .SendAsync("ReceiveNotification", new
-                        {
-                            id = notif.Id,
-                            rfqId = notif.RFQId,
-                            message = notif.Message,
-                            createdAt = notif.CreatedAt
-                        });
+                    var engineerMessage = $"Nouvelle RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) vous a été assignée.";
+                    await _notificationService.CreateNotification(engineerMessage, rfq.IngenieurRFQId.Value, rfq.Id, actionUserName);
                 }
 
                 return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
@@ -352,32 +344,23 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Update(rfq);
 
-            // Create notification for the RFQ engineer if assigned
-            if (rfq.IngenieurRFQId.HasValue)
-            {
-                var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été mise à jour.";
+            // Get the current user's ID and name from JWT claims
+             var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+             var actionUserName = User.FindFirst("name")?.Value ?? 
+                                User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                "Utilisateur inconnu";
 
-                var notif = new Notification
-                {
-                    RFQId = rfq.Id,
-                    UserId = rfq.IngenieurRFQId.Value,
-                    Message = message,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
+             // Always notify all Validateurs for every RFQ update
+             var validateurMessage = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) mise à jour par {actionUserName}.";
+             await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", rfq.Id, actionUserName);
 
-                _notificationService.Add(notif);
-
-                // Send real-time notification via SignalR
-                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
-                    .SendAsync("ReceiveNotification", new
-                    {
-                        id = notif.Id,
-                        rfqId = notif.RFQId,
-                        message = notif.Message,
-                        createdAt = notif.CreatedAt
-                    });
-            }
+             // Also notify the assigned engineer if there is one and it's not the current user
+             if (rfq.IngenieurRFQId.HasValue && int.TryParse(currentUserIdClaim, out int currentUserId) && currentUserId != rfq.IngenieurRFQId.Value)
+             {
+                 var engineerMessage = $"La RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) qui vous est assignée a été mise à jour.";
+                 await _notificationService.CreateNotification(engineerMessage, rfq.IngenieurRFQId.Value, rfq.Id, actionUserName);
+             }
 
             // Return a proper response
             return Ok(new
@@ -547,27 +530,14 @@ namespace EX.UI.Web.Controllers
             if (rfq.IngenieurRFQId.HasValue)
             {
                 var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée.";
+                
+                // Get the current user's name from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
 
-                var notif = new Notification
-                {
-                    RFQId = rfq.Id,
-                    UserId = rfq.IngenieurRFQId.Value,
-                    Message = message,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _notificationService.Add(notif);
-
-                // Send real-time notification via SignalR
-                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
-                    .SendAsync("ReceiveNotification", new
-                    {
-                        id = notif.Id,
-                        rfqId = notif.RFQId,
-                        message = notif.Message,
-                        createdAt = notif.CreatedAt
-                    });
+                await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.Id, actionUserName);
             }
 
             return Ok(rfq);
@@ -590,27 +560,14 @@ namespace EX.UI.Web.Controllers
             if (rfq.IngenieurRFQId.HasValue)
             {
                 var message = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été rejetée.";
+                
+                // Get the current user's name from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
 
-                var notif = new Notification
-                {
-                    RFQId = rfq.Id,
-                    UserId = rfq.IngenieurRFQId.Value,
-                    Message = message,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _notificationService.Add(notif);
-
-                // Send real-time notification via SignalR
-                await _hub.Clients.User(rfq.IngenieurRFQId.Value.ToString())
-                    .SendAsync("ReceiveNotification", new
-                    {
-                        id = notif.Id,
-                        rfqId = notif.RFQId,
-                        message = notif.Message,
-                        createdAt = notif.CreatedAt
-                    });
+                await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.Id, actionUserName);
             }
 
             return Ok(rfq);

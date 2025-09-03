@@ -1,4 +1,4 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using EX.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EX.UI.Web.Controllers
 {
@@ -15,11 +17,13 @@ namespace EX.UI.Web.Controllers
     {
         private readonly IService<VersionRFQ> _versionRFQService;
         private readonly IService<RFQ> _rfqService;
+        private readonly INotificationService _notificationService;
 
-        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService)
+        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService, INotificationService notificationService)
         {
             _versionRFQService = versionRFQService;
             _rfqService = rfqService;
+            _notificationService = notificationService;
         }
 
         // GET: api/VersionRFQ
@@ -160,6 +164,33 @@ namespace EX.UI.Web.Controllers
             }
 
             _versionRFQService.Add(versionRFQ);
+            
+            // Get the current user's ID and name from JWT claims
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
+
+                // Check if current user is a Validateur
+                bool isValidateur = User.IsInRole("Validateur");
+
+                if (isValidateur)
+                {
+                    // If Validateur creates version, notify only the assigned engineer
+                    if (versionRFQ.IngenieurRFQId.HasValue)
+                    {
+                        var engineerMessage = $"Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) qui vous est assignée par {actionUserName}.";
+                        await _notificationService.CreateNotification(engineerMessage, versionRFQ.IngenieurRFQId.Value, versionRFQ.RFQId, actionUserName);
+                    }
+                }
+                else
+                {
+                    // If Engineer creates version, notify all Validateurs
+                    var validateurMessage = $"Nouvelle version créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) par {actionUserName}.";
+                    await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", versionRFQ.RFQId, actionUserName);
+                }
+            
             return CreatedAtAction(nameof(Get), new { id = versionRFQ.Id }, versionRFQ);
 
             }
@@ -229,6 +260,33 @@ namespace EX.UI.Web.Controllers
             }
 
             _versionRFQService.Update(existingVersionRFQ);
+            
+            // Get the current user's ID and name from JWT claims
+              var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+              var actionUserName = User.FindFirst("name")?.Value ?? 
+                                 User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                 User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                 "Utilisateur inconnu";
+ 
+              // Check if current user is a Validateur
+              bool isValidateur = User.IsInRole("Validateur");
+
+              if (isValidateur)
+              {
+                  // If Validateur updates version, notify only the assigned engineer
+                  if (existingVersionRFQ.IngenieurRFQId.HasValue)
+                  {
+                      var engineerMessage = $"La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) qui vous est assignée a été mise à jour par {actionUserName}.";
+                      await _notificationService.CreateNotification(engineerMessage, existingVersionRFQ.IngenieurRFQId.Value, existingVersionRFQ.RFQId, actionUserName);
+                  }
+              }
+              else
+              {
+                  // If Engineer updates version, notify all Validateurs
+                  var validateurMessage = $"Version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) mise à jour par {actionUserName}.";
+                  await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", existingVersionRFQ.RFQId, actionUserName);
+              }
+            
             return NoContent();
         }
 
@@ -271,7 +329,7 @@ namespace EX.UI.Web.Controllers
 
         [Authorize(Roles = "Validateur")]
         [HttpPost("{id}/valider")]
-        public IActionResult Valider(int id)
+        public async Task<IActionResult> Valider(int id)
         {
             var rfq = _versionRFQService.Get(id);
             if (rfq == null)
@@ -283,12 +341,26 @@ namespace EX.UI.Web.Controllers
             rfq.ApprovalDate = DateTime.UtcNow;
             _versionRFQService.Update(rfq);
 
+            // Create notification for the RFQ engineer if assigned
+            if (rfq.IngenieurRFQId.HasValue)
+            {
+                var message = $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée.";
+                
+                // Get the current user's name from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
+
+                await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
+            }
+
             return Ok(rfq);
         }
 
         [Authorize(Roles = "Validateur")]
         [HttpPost("{id}/rejeter")]
-        public IActionResult Rejeter(int id)
+        public async Task<IActionResult> Rejeter(int id)
         {
             var rfq = _versionRFQService.Get(id);
             if (rfq == null)
@@ -296,9 +368,22 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
-
             rfq.Rejete = true;
             _versionRFQService.Update(rfq);
+
+            // Create notification for the RFQ engineer if assigned
+            if (rfq.IngenieurRFQId.HasValue)
+            {
+                var message = $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été rejetée.";
+                
+                // Get the current user's name from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
+
+                await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
+            }
 
             return Ok(rfq);
         }

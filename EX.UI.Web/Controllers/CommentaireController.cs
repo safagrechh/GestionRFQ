@@ -1,9 +1,10 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using EX.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EX.UI.Web.Controllers
 {
@@ -15,22 +16,25 @@ namespace EX.UI.Web.Controllers
         private readonly IService<RFQ> _rfqService;
         private readonly IService<VersionRFQ> _versionRFQService;
         private readonly IService<User> _userService;
+        private readonly INotificationService _notificationService;
 
         public CommentaireController(
             IService<Commentaire> commentaireService,
             IService<User> userService,
             IService<RFQ> rfqService,
-            IService<VersionRFQ> versionRFQService)
+            IService<VersionRFQ> versionRFQService,
+            INotificationService notificationService)
         {
             _commentaireService = commentaireService;
             _userService = userService;
             _rfqService = rfqService;
             _versionRFQService = versionRFQService;
+            _notificationService = notificationService;
         }
 
         [HttpPost]
         [Authorize(Roles = "Validateur")]
-        public ActionResult<Commentaire> Create([FromBody] CreateCommentaireDto dto)
+        public async Task<ActionResult<Commentaire>> Create([FromBody] CreateCommentaireDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -90,6 +94,37 @@ namespace EX.UI.Web.Controllers
             };
 
             _commentaireService.Add(commentaire);
+
+            // Create notification for the RFQ engineer if assigned
+            int? engineerId = null;
+            int rfqId = 0;
+            string entityName = "";
+            
+            if (rfq != null)
+            {
+                engineerId = rfq.IngenieurRFQId;
+                rfqId = rfq.Id;
+                entityName = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ})";
+            }
+            else if (versionRFQ != null)
+            {
+                engineerId = versionRFQ.IngenieurRFQId;
+                rfqId = versionRFQ.RFQId;
+                entityName = $"Version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ})";
+            }
+            
+            if (engineerId.HasValue)
+            {
+                var message = $"Nouveau commentaire ajouté à {entityName}.";
+                
+                // Get the current user's name from JWT claims
+                var actionUserName = User.FindFirst("name")?.Value ?? 
+                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                                   "Utilisateur inconnu";
+
+                await _notificationService.CreateNotification(message, engineerId.Value, rfqId, actionUserName);
+            }
 
             return CreatedAtAction(nameof(Get), new { id = commentaire.Id }, commentaire);
         }

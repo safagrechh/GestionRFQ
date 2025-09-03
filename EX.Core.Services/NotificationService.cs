@@ -30,13 +30,14 @@ namespace EX.Core.Services
                 .Count(n => n.UserId == userId && !n.IsRead);
         }
 
-        public Notification CreateNotification(string message, int userId, int rfqId)
+        public async Task<Notification> CreateNotification(string message, int userId, int rfqId, string actionUserName)
         {
             var notification = new Notification
             {
                 Message = message,
                 UserId = userId,
                 RFQId = rfqId,
+                ActionUserName = actionUserName,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false
             };
@@ -46,7 +47,7 @@ namespace EX.Core.Services
             _unitOfWork.Save();
 
             // Send real-time notification
-            _ = _realTimeService.SendNotificationAsync(userId, notification);
+            await _realTimeService.SendNotificationAsync(userId, notification);
 
             return notification;
         }
@@ -103,6 +104,36 @@ namespace EX.Core.Services
             return true;
         }
 
+        public async Task CreateNotificationsForRole(string message, string role, int rfqId, string actionUserName)
+        {
+            var userRepository = _unitOfWork.GetRepository<User>();
+            var notificationRepository = _unitOfWork.GetRepository<Notification>();
+            
+            // Get all users with the specified role
+            var users = userRepository.GetAll()
+                .Where(u => u.Role.ToString() == role)
+                .ToList();
+
+            foreach (var user in users)
+            {
+                var notification = new Notification
+                {
+                    Message = message,
+                    UserId = user.Id,
+                    RFQId = rfqId,
+                    ActionUserName = actionUserName,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                notificationRepository.Add(notification);
+                
+                // Send real-time notification
+                await _realTimeService.SendNotificationAsync(user.Id, notification);
+            }
+
+            _unitOfWork.Save();
+        }
 
     }
 }

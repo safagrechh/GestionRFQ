@@ -33,7 +33,8 @@ namespace EX.UI.Web.Services
                     notification.CreatedAt,
                     notification.IsRead,
                     notification.RFQId,
-                    notification.UserId
+                    notification.UserId,
+                    notification.ActionUserName
                 };
 
                 await _hubContext.Clients.Group(groupName)

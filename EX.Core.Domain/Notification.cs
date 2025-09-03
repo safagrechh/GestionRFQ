@@ -12,6 +12,7 @@ namespace EX.Core.Domain
         public string Message { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsRead { get; set; } = false;
+        public string ActionUserName { get; set; } = string.Empty; // Name of user who performed the action
 
         // Link to RFQ
         public int RFQId { get; set; }
