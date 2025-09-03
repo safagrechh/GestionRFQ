@@ -18,12 +18,14 @@ namespace EX.UI.Web.Controllers
         private readonly IService<VersionRFQ> _versionRFQService;
         private readonly IService<RFQ> _rfqService;
         private readonly INotificationService _notificationService;
+        private readonly IEmailService _emailService;
 
-        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService, INotificationService notificationService)
+        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService, INotificationService notificationService, IEmailService emailService)
         {
             _versionRFQService = versionRFQService;
             _rfqService = rfqService;
             _notificationService = notificationService;
+            _emailService = emailService;
         }
 
         // GET: api/VersionRFQ
@@ -182,6 +184,11 @@ namespace EX.UI.Web.Controllers
                     {
                         var engineerMessage = $"Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) qui vous est assignée par {actionUserName}.";
                         await _notificationService.CreateNotification(engineerMessage, versionRFQ.IngenieurRFQId.Value, versionRFQ.RFQId, actionUserName);
+                        
+                        // Send email to assigned engineer
+                        var engineerEmailSubject = "Nouvelle version RFQ créée";
+                        var engineerEmailBody = $"<h3>Nouvelle version créée</h3><p>Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) qui vous est assignée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                        await _emailService.SendEmailToUserAsync(versionRFQ.IngenieurRFQId.Value, engineerEmailSubject, engineerEmailBody);
                     }
                 }
                 else
@@ -189,6 +196,11 @@ namespace EX.UI.Web.Controllers
                     // If Engineer creates version, notify all Validateurs
                     var validateurMessage = $"Nouvelle version créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) par {actionUserName}.";
                     await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", versionRFQ.RFQId, actionUserName);
+                    
+                    // Send email to all Validateurs
+                    var validateurEmailSubject = "Nouvelle version RFQ créée";
+                    var validateurEmailBody = $"<h3>Nouvelle version créée</h3><p>Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                    await _emailService.SendEmailToRoleAsync("Validateur", validateurEmailSubject, validateurEmailBody);
                 }
             
             return CreatedAtAction(nameof(Get), new { id = versionRFQ.Id }, versionRFQ);
@@ -278,6 +290,11 @@ namespace EX.UI.Web.Controllers
                   {
                       var engineerMessage = $"La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) qui vous est assignée a été mise à jour par {actionUserName}.";
                       await _notificationService.CreateNotification(engineerMessage, existingVersionRFQ.IngenieurRFQId.Value, existingVersionRFQ.RFQId, actionUserName);
+                      
+                      // Send email to assigned engineer
+                      var engineerEmailSubject = "Version RFQ mise à jour";
+                      var engineerEmailBody = $"<h3>Version RFQ mise à jour</h3><p>La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) qui vous est assignée a été mise à jour par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                      await _emailService.SendEmailToUserAsync(existingVersionRFQ.IngenieurRFQId.Value, engineerEmailSubject, engineerEmailBody);
                   }
               }
               else
@@ -285,6 +302,11 @@ namespace EX.UI.Web.Controllers
                   // If Engineer updates version, notify all Validateurs
                   var validateurMessage = $"Version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) mise à jour par {actionUserName}.";
                   await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", existingVersionRFQ.RFQId, actionUserName);
+                  
+                  // Send email to all Validateurs
+                  var validateurEmailSubject = "Version RFQ mise à jour";
+                  var validateurEmailBody = $"<h3>Version RFQ mise à jour</h3><p>La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) a été mise à jour par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                  await _emailService.SendEmailToRoleAsync("Validateur", validateurEmailSubject, validateurEmailBody);
               }
             
             return NoContent();
@@ -353,6 +375,11 @@ namespace EX.UI.Web.Controllers
                                    "Utilisateur inconnu";
 
                 await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
+                
+                // Send email to assigned engineer
+                var emailSubject = "Version RFQ validée";
+                var emailBody = $"<h3>Version RFQ validée</h3><p>La version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                await _emailService.SendEmailToUserAsync(rfq.IngenieurRFQId.Value, emailSubject, emailBody);
             }
 
             return Ok(rfq);
@@ -383,6 +410,11 @@ namespace EX.UI.Web.Controllers
                                    "Utilisateur inconnu";
 
                 await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
+                
+                // Send email to assigned engineer
+                var emailSubject = "Version RFQ rejetée";
+                var emailBody = $"<h3>Version RFQ rejetée</h3><p>La version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été rejetée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+                await _emailService.SendEmailToUserAsync(rfq.IngenieurRFQId.Value, emailSubject, emailBody);
             }
 
             return Ok(rfq);

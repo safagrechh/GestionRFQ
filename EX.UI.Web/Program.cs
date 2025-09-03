@@ -54,6 +54,7 @@ builder.Services.AddScoped(typeof(IService<>), typeof(Service<>));
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IRealTimeNotificationService, RealTimeNotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // ----- JWT Auth (with SignalR support) -----
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
