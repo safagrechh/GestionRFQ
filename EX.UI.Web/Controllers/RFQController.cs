@@ -65,8 +65,9 @@ namespace EX.UI.Web.Controllers
                 Brouillon = r.Brouillon,
                 FileName = r.FileName,
                 FileContentType = r.FileContentType,
-                VersionsCount = r.Versions?.Count ?? 0 // Changed to return count instead of versions
-
+                VersionsCount = r.Versions?.Count ?? 0, // Changed to return count instead of versions
+                CreatedByUserId = r.CreatedByUserId,
+                CreatedByUser = r.CreatedByUser?.NomUser
 
 
             }).ToList();
@@ -116,7 +117,9 @@ namespace EX.UI.Web.Controllers
                 Brouillon = rfq.Brouillon ,
                 FileName = rfq.FileName,
                 FileContentType = rfq.FileContentType,
-                VersionsCount = rfq.Versions?.Count ?? 0 // Changed to return count instead of versions
+                VersionsCount = rfq.Versions?.Count ?? 0, // Changed to return count instead of versions
+                CreatedByUserId = rfq.CreatedByUserId,
+                CreatedByUser = rfq.CreatedByUser?.NomUser
 
             };
 
@@ -631,6 +634,65 @@ namespace EX.UI.Web.Controllers
             return Ok(rfqs);
         }
 
+        [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
+        [HttpGet("drafts/{userId}")]
+        public ActionResult<IEnumerable<RFQDetailsDto>> GetUserDrafts(int userId)
+        {
+            try
+            {
+                var drafts = _rfqService.GetAll()
+                    .Where(r => r.Brouillon == true &&  r.CreatedByUserId == userId)
+                    .Select(r => new RFQDetailsDto
+                    {
+                        Id = r.Id,
+                        CQ = r.CQ,
+                        QuoteName = r.QuoteName,
+                        NumRefQuoted = r.NumRefQuoted,
+                        SOPDate = r.SOPDate,
+                        MaxV = r.MaxV,
+                        EstV = r.EstV,
+                        KODate = r.KODate,
+                        CustomerDataDate = r.CustomerDataDate,
+                        MDDate = r.MDDate,
+                        MRDate = r.MRDate,
+                        TDDate = r.TDDate,
+                        TRDate = r.TRDate,
+                        LDDate = r.LDDate,
+                        LRDate = r.LRDate,
+                        CDDate = r.CDDate,
+                        ApprovalDate = r.ApprovalDate,
+                        DateCreation = r.DateCreation,
+                        Statut = r.Statut,
+                        MaterialLeader = r.MaterialLeader?.Nom,
+                        TestLeader = r.TestLeader?.Nom,
+                        MarketSegment = r.MarketSegment?.Nom,
+                        IngenieurRFQ = r.IngenieurRFQ?.NomUser,
+                        VALeader = r.VALeader?.NomUser,
+                        Client = r.Client?.Nom,
+                        Valide = r.Valide,
+                        Rejete = r.Rejete,
+                        Brouillon = r.Brouillon,
+                        FileName = r.FileName,
+                        FileContentType = r.FileContentType,
+                        VersionsCount = r.Versions?.Count ?? 0,
+                        CreatedByUserId = r.CreatedByUserId,
+                        CreatedByUser = r.CreatedByUser?.NomUser
+                    })
+                    .ToList();
+
+                return Ok(drafts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Title = "Server Error",
+                    Message = "An error occurred while retrieving user drafts.",
+                    Details = ex.Message
+                });
+            }
+        }
+
     }
     public class CreateRFQDto
     {
@@ -733,6 +795,10 @@ namespace EX.UI.Web.Controllers
         public byte[]? FileData { get; set; }
 
         public int VersionsCount { get; set; }
+
+        // CreatedByUser fields
+        public int? CreatedByUserId { get; set; }
+        public string? CreatedByUser { get; set; }
 
     }
 

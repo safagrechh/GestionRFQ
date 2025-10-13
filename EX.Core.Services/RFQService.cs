@@ -1,4 +1,4 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using EX.Core.Interfaces;
 using System;
 using System.Collections.Generic;
