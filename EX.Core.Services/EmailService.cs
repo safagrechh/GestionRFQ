@@ -34,8 +34,10 @@ namespace EX.Core.Services
                 var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
                 var fromEmail = _configuration["EmailSettings:FromEmail"];
                 var fromName = _configuration["EmailSettings:FromName"] ?? "Asteel Flash RFQ System";
+                var enableSsl = bool.TryParse(_configuration["EmailSettings:EnableSsl"], out var ssl) ? ssl : true;
+                var useDefaultCredentials = bool.TryParse(_configuration["EmailSettings:UseDefaultCredentials"], out var useDefaultCreds) ? useDefaultCreds : false;
 
-                _logger.LogInformation($"SMTP Configuration - Host: {smtpHost}, Port: {smtpPort}, Username: {smtpUsername}, FromEmail: {fromEmail}");
+                _logger.LogInformation($"SMTP Configuration - Host: {smtpHost}, Port: {smtpPort}, Username: {smtpUsername}, FromEmail: {fromEmail}, EnableSsl: {enableSsl}, UseDefaultCredentials: {useDefaultCredentials}");
 
                 if (string.IsNullOrEmpty(toEmail))
                 {
@@ -45,9 +47,21 @@ namespace EX.Core.Services
 
                 using var client = new SmtpClient(smtpHost, smtpPort)
                 {
-                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                    EnableSsl = true
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    EnableSsl = enableSsl,
+                    UseDefaultCredentials = useDefaultCredentials
                 };
+
+                if (!useDefaultCredentials)
+                {
+                    if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword))
+                    {
+                        _logger.LogError("SMTP credentials are not configured but UseDefaultCredentials is false.");
+                        throw new InvalidOperationException("SMTP credentials are required when UseDefaultCredentials is false.");
+                    }
+
+                    client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
+                }
 
                 var mailMessage = new MailMessage
                 {
@@ -69,6 +83,7 @@ namespace EX.Core.Services
                 throw;
             }
         }
+
 
         public async Task SendEmailToRoleAsync(string role, string subject, string message)
         {

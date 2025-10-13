@@ -29,6 +29,54 @@ namespace EX.UI.Web.Controllers
             _hub = hub;
         }
 
+        // Simple DTO for test email requests
+        public class TestEmailRequest
+        {
+            public string? ToEmail { get; set; }
+            public string? Subject { get; set; }
+            public string? Message { get; set; }
+        }
+
+        // Endpoint to test sending an email
+        // [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
+        // [HttpPost("test-email")]
+        // public async Task<IActionResult> TestEmail([FromBody] TestEmailRequest request)
+        // {
+        //     if (request == null || string.IsNullOrWhiteSpace(request.ToEmail))
+        //     {
+        //         return BadRequest(new { error = "'toEmail' is required." });
+        //     }
+
+        //     var toEmail = request.ToEmail.Trim();
+        //     try
+        //     {
+        //         // Validate email format before sending
+        //         var _ = new System.Net.Mail.MailAddress(toEmail);
+        //     }
+        //     catch
+        //     {
+        //         return BadRequest(new { error = "Adresse e-mail invalide.", details = "Utilisez un format valide, ex: utilisateur@example.com" });
+        //     }
+
+        //     var subject = string.IsNullOrWhiteSpace(request.Subject) ? "Test RFQ Email" : request.Subject;
+        //     var body = string.IsNullOrWhiteSpace(request.Message) ? "<p>Ceci est un email de test depuis l'API RFQ.</p>" : request.Message;
+
+        //     try
+        //     {
+        //         await _emailService.SendEmailAsync(toEmail, subject, body);
+        //         return Ok(new { success = true, message = $"Email de test envoyé à {toEmail}" });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         return StatusCode(500, new
+        //         {
+        //             success = false,
+        //             error = "Echec de l'envoi de l'email de test.",
+        //             details = ex.Message
+        //         });
+        //     }
+        // }
+
         [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         [HttpGet]
         public ActionResult<IEnumerable<RFQDetailsDto>> GetAll()
@@ -486,7 +534,6 @@ namespace EX.UI.Web.Controllers
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
-        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
