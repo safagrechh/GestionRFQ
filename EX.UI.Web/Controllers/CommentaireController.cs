@@ -1,5 +1,6 @@
 using EX.Core.Domain;
 using EX.Core.Services;
+using EX.UI.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ namespace EX.UI.Web.Controllers
         private readonly IService<VersionRFQ> _versionRFQService;
         private readonly IService<User> _userService;
         private readonly INotificationService _notificationService;
-        private readonly IService<HistoriqueAction> _historiqueActionService;
+        private readonly IActionHistoryLogger _actionHistoryLogger;
 
         public CommentaireController(
             IService<Commentaire> commentaireService,
@@ -26,14 +27,14 @@ namespace EX.UI.Web.Controllers
             IService<RFQ> rfqService,
             IService<VersionRFQ> versionRFQService,
             INotificationService notificationService,
-            IService<HistoriqueAction> historiqueActionService)
+            IActionHistoryLogger actionHistoryLogger)
         {
             _commentaireService = commentaireService;
             _userService = userService;
             _rfqService = rfqService;
             _versionRFQService = versionRFQService;
             _notificationService = notificationService;
-            _historiqueActionService = historiqueActionService;
+            _actionHistoryLogger = actionHistoryLogger;
         }
 
         private bool TryGetCurrentUserId(out int userId)
@@ -48,21 +49,6 @@ namespace EX.UI.Web.Controllers
 
             userId = 0;
             return false;
-        }
-
-        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction, int userId)
-        {
-            var action = new HistoriqueAction
-            {
-                Type = type,
-                CibleAction = cibleAction,
-                ReferenceCible = referenceCible,
-                DetailsAction = detailsAction,
-                DateAction = DateTime.UtcNow,
-                UserId = userId
-            };
-
-            _historiqueActionService.Add(action);
         }
 
         [HttpPost]
@@ -130,7 +116,7 @@ namespace EX.UI.Web.Controllers
                 ? $"RFQ '{rfq?.QuoteName}' (CQ: {rfq?.CQ})"
                 : $"Version RFQ '{versionRFQ?.QuoteName}' (CQ: {versionRFQ?.CQ})";
 
-            LogHistoriqueAction(
+            _actionHistoryLogger.LogAction(
                 "COMMENT_CREATED",
                 cibleAction,
                 referenceCible,
@@ -226,7 +212,7 @@ namespace EX.UI.Web.Controllers
                     ? $"Version RFQ '{version.QuoteName}' (CQ: {version.CQ})"
                     : "élément inconnu";
 
-            LogHistoriqueAction(
+            _actionHistoryLogger.LogAction(
                 "COMMENT_UPDATED",
                 cibleAction,
                 referenceCible,
@@ -274,7 +260,7 @@ namespace EX.UI.Web.Controllers
                     ? $"Version RFQ '{version.QuoteName}' (CQ: {version.CQ})"
                     : "élément inconnu";
 
-            LogHistoriqueAction(
+            _actionHistoryLogger.LogAction(
                 "COMMENT_DELETED",
                 cibleAction,
                 referenceCible,
