@@ -1,10 +1,12 @@
 using EX.Core.Domain;
 using EX.Core.Services;
+using EX.UI.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 
 namespace EX.UI.Web.Controllers
 {
@@ -17,19 +19,36 @@ namespace EX.UI.Web.Controllers
         private readonly IService<VersionRFQ> _versionRFQService;
         private readonly IService<User> _userService;
         private readonly INotificationService _notificationService;
+        private readonly IActionHistoryLogger _actionHistoryLogger;
 
         public CommentaireController(
             IService<Commentaire> commentaireService,
             IService<User> userService,
             IService<RFQ> rfqService,
             IService<VersionRFQ> versionRFQService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IActionHistoryLogger actionHistoryLogger)
         {
             _commentaireService = commentaireService;
             _userService = userService;
             _rfqService = rfqService;
             _versionRFQService = versionRFQService;
             _notificationService = notificationService;
+            _actionHistoryLogger = actionHistoryLogger;
+        }
+
+        private bool TryGetCurrentUserId(out int userId)
+        {
+            var userIdClaim = User.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _))?.Value;
+
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out userId))
+            {
+                return true;
+            }
+
+            userId = 0;
+            return false;
         }
 
         [HttpPost]
@@ -41,11 +60,7 @@ namespace EX.UI.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            // UserId extraction (reusing logic from GetCurrentUser)
-            var userIdClaim = User.Claims
-                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _))?.Value;
-
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int validateurId))
+            if (!TryGetCurrentUserId(out int validateurId))
             {
                 return Unauthorized(new { message = "Validateur ID not found in token" });
             }
@@ -94,6 +109,19 @@ namespace EX.UI.Web.Controllers
             };
 
             _commentaireService.Add(commentaire);
+
+            var cibleAction = dto.RFQId.HasValue ? "COMMENTAIRE_RFQ" : "COMMENTAIRE_VERSION";
+            var referenceCible = dto.RFQId.HasValue ? rfq?.CQ.ToString() : versionRFQ?.CQ.ToString();
+            var entityDescription = dto.RFQId.HasValue
+                ? $"RFQ '{rfq?.QuoteName}' (CQ: {rfq?.CQ})"
+                : $"Version RFQ '{versionRFQ?.QuoteName}' (CQ: {versionRFQ?.CQ})";
+
+            _actionHistoryLogger.LogAction(
+                "COMMENT_CREATED",
+                cibleAction,
+                referenceCible,
+                $"Commentaire créé sur {entityDescription}.",
+                validateurId);
 
             // Create notification for the RFQ engineer if assigned
             int? engineerId = null;
@@ -149,6 +177,11 @@ namespace EX.UI.Web.Controllers
         [Authorize(Roles = "Validateur")]
         public ActionResult<Commentaire> Update(int id, [FromBody] UpdateCommentaireDto dto)
         {
+            if (!TryGetCurrentUserId(out int validateurId))
+            {
+                return Unauthorized(new { message = "Validateur ID not found in token" });
+            }
+
             var commentaire = _commentaireService.Get(id);
             if (commentaire == null)
             {
@@ -158,6 +191,34 @@ namespace EX.UI.Web.Controllers
             commentaire.Contenu = dto.Contenu ?? commentaire.Contenu;
 
             _commentaireService.Update(commentaire);
+
+            RFQ rfq = null;
+            VersionRFQ version = null;
+
+            if (commentaire.RFQId.HasValue)
+            {
+                rfq = _rfqService.Get(commentaire.RFQId.Value);
+            }
+            else if (commentaire.VersionRFQId.HasValue)
+            {
+                version = _versionRFQService.Get(commentaire.VersionRFQId.Value);
+            }
+
+            var cibleAction = commentaire.RFQId.HasValue ? "COMMENTAIRE_RFQ" : "COMMENTAIRE_VERSION";
+            var referenceCible = commentaire.RFQId.HasValue ? rfq?.CQ.ToString() : version?.CQ.ToString();
+            var entityDescription = commentaire.RFQId.HasValue && rfq != null
+                ? $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ})"
+                : commentaire.VersionRFQId.HasValue && version != null
+                    ? $"Version RFQ '{version.QuoteName}' (CQ: {version.CQ})"
+                    : "élément inconnu";
+
+            _actionHistoryLogger.LogAction(
+                "COMMENT_UPDATED",
+                cibleAction,
+                referenceCible,
+                $"Commentaire mis à jour sur {entityDescription}.",
+                validateurId);
+
             return Ok(commentaire);
         }
 
@@ -166,13 +227,46 @@ namespace EX.UI.Web.Controllers
         [Authorize(Roles = "Validateur")]
         public IActionResult Delete(int id)
         {
+            if (!TryGetCurrentUserId(out int validateurId))
+            {
+                return Unauthorized(new { message = "Validateur ID not found in token" });
+            }
+
             var commentaire = _commentaireService.Get(id);
             if (commentaire == null)
             {
                 return NotFound();
             }
 
+            RFQ rfq = null;
+            VersionRFQ version = null;
+
+            if (commentaire.RFQId.HasValue)
+            {
+                rfq = _rfqService.Get(commentaire.RFQId.Value);
+            }
+            else if (commentaire.VersionRFQId.HasValue)
+            {
+                version = _versionRFQService.Get(commentaire.VersionRFQId.Value);
+            }
+
             _commentaireService.Delete(commentaire);
+
+            var cibleAction = commentaire.RFQId.HasValue ? "COMMENTAIRE_RFQ" : "COMMENTAIRE_VERSION";
+            var referenceCible = commentaire.RFQId.HasValue ? rfq?.CQ.ToString() : version?.CQ.ToString();
+            var entityDescription = commentaire.RFQId.HasValue && rfq != null
+                ? $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ})"
+                : commentaire.VersionRFQId.HasValue && version != null
+                    ? $"Version RFQ '{version.QuoteName}' (CQ: {version.CQ})"
+                    : "élément inconnu";
+
+            _actionHistoryLogger.LogAction(
+                "COMMENT_DELETED",
+                cibleAction,
+                referenceCible,
+                $"Commentaire supprimé sur {entityDescription}.",
+                validateurId);
+
             return NoContent();
         }
 
