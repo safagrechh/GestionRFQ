@@ -40,6 +40,41 @@ namespace EX.UI.Web.Controllers
             public string? Message { get; set; }
         }
 
+        private int? GetCurrentUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            if (claim != null && int.TryParse(claim.Value, out var id))
+            {
+                return id;
+            }
+
+            return null;
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction)
+        {
+            var userId = GetCurrentUserId();
+            if (userId.HasValue)
+            {
+                LogHistoriqueAction(type, cibleAction, referenceCible, detailsAction, userId.Value);
+            }
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction, int userId)
+        {
+            var action = new HistoriqueAction
+            {
+                Type = type,
+                CibleAction = cibleAction,
+                ReferenceCible = referenceCible,
+                DetailsAction = detailsAction,
+                DateAction = DateTime.UtcNow,
+                UserId = userId
+            };
+
+            _historiqueActionService.Add(action);
+        }
+
         // Endpoint to test sending an email
         // [Authorize(Roles = "Validateur,IngenieurRFQ,Admin")]
         // [HttpPost("test-email")]
