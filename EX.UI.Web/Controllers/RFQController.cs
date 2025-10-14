@@ -19,14 +19,16 @@ namespace EX.UI.Web.Controllers
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IHubContext<NotificationHub> _hub;
+        private readonly IService<HistoriqueAction> _historiqueActionService;
 
         public RFQController(IService<RFQ> rfqService , INotificationService notificationService,
-        IEmailService emailService, IHubContext<NotificationHub> hub)
+        IEmailService emailService, IHubContext<NotificationHub> hub, IService<HistoriqueAction> historiqueActionService)
         {
             _rfqService = rfqService;
             _notificationService = notificationService;
             _emailService = emailService;
             _hub = hub;
+            _historiqueActionService = historiqueActionService;
         }
 
         // Simple DTO for test email requests
@@ -35,6 +37,41 @@ namespace EX.UI.Web.Controllers
             public string? ToEmail { get; set; }
             public string? Subject { get; set; }
             public string? Message { get; set; }
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            if (claim != null && int.TryParse(claim.Value, out var id))
+            {
+                return id;
+            }
+
+            return null;
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction)
+        {
+            var userId = GetCurrentUserId();
+            if (userId.HasValue)
+            {
+                LogHistoriqueAction(type, cibleAction, referenceCible, detailsAction, userId.Value);
+            }
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction, int userId)
+        {
+            var action = new HistoriqueAction
+            {
+                Type = type,
+                CibleAction = cibleAction,
+                ReferenceCible = referenceCible,
+                DetailsAction = detailsAction,
+                DateAction = DateTime.UtcNow,
+                UserId = userId
+            };
+
+            _historiqueActionService.Add(action);
         }
 
         // Endpoint to test sending an email
@@ -229,6 +266,12 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
+            LogHistoriqueAction(
+                "RFQ_CREATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) créée.");
+
                 // Get the current user's ID and name from JWT claims
                 var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var actionUserName = User.FindFirst("name")?.Value ?? 
@@ -346,6 +389,12 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
+            LogHistoriqueAction(
+                "RFQ_CREATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) créée (validation directe).");
+
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
@@ -406,6 +455,12 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Update(rfq);
+
+            LogHistoriqueAction(
+                "RFQ_UPDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) mise à jour.");
 
             // Get the current user's ID and name from JWT claims
              var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -471,6 +526,12 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Update(rfq);
 
+            LogHistoriqueAction(
+                "RFQ_STATUT_UPDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"Statut de la RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) mis à jour vers {rfq.Statut}.");
+
             return Ok(new
             {
                 success = true,
@@ -531,6 +592,13 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Add(rfq);
+
+            var referenceCible = rfq.CQ == 0 ? null : rfq.CQ.ToString();
+            LogHistoriqueAction(
+                "RFQ_DRAFT_CREATED",
+                "RFQ",
+                referenceCible,
+                $"Brouillon de RFQ '{rfq.QuoteName}' créé.");
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
@@ -544,6 +612,12 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Delete(rfq);
+
+            LogHistoriqueAction(
+                "RFQ_DELETED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) supprimée.");
             return NoContent();
         }
 
@@ -584,10 +658,16 @@ namespace EX.UI.Web.Controllers
              rfq.Rejete = false;
              rfq.Brouillon = false;
 
-             _rfqService.Update(rfq);
+            _rfqService.Update(rfq);
 
-             return Ok(rfq);
-         }
+            LogHistoriqueAction(
+                "RFQ_FINALISED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) finalisée depuis un brouillon.");
+
+            return Ok(rfq);
+        }
          
 
         [Authorize(Roles = "Validateur")]
@@ -603,6 +683,12 @@ namespace EX.UI.Web.Controllers
             rfq.Valide = true;
             rfq.ApprovalDate = DateTime.UtcNow;
             _rfqService.Update(rfq);
+
+            LogHistoriqueAction(
+                "RFQ_VALIDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) validée.");
 
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
@@ -633,6 +719,12 @@ namespace EX.UI.Web.Controllers
 
             rfq.Rejete = true;
             _rfqService.Update(rfq);
+
+            LogHistoriqueAction(
+                "RFQ_REJECTED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) rejetée.");
 
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)

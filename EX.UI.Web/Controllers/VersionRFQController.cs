@@ -19,13 +19,50 @@ namespace EX.UI.Web.Controllers
         private readonly IService<RFQ> _rfqService;
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
+        private readonly IService<HistoriqueAction> _historiqueActionService;
 
-        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService, INotificationService notificationService, IEmailService emailService)
+        public VersionRFQController(IService<VersionRFQ> versionRFQService, IService<RFQ> rfqService, INotificationService notificationService, IEmailService emailService, IService<HistoriqueAction> historiqueActionService)
         {
             _versionRFQService = versionRFQService;
             _rfqService = rfqService;
             _notificationService = notificationService;
             _emailService = emailService;
+            _historiqueActionService = historiqueActionService;
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            if (claim != null && int.TryParse(claim.Value, out var id))
+            {
+                return id;
+            }
+
+            return null;
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction)
+        {
+            var userId = GetCurrentUserId();
+            if (userId.HasValue)
+            {
+                LogHistoriqueAction(type, cibleAction, referenceCible, detailsAction, userId.Value);
+            }
+        }
+
+        private void LogHistoriqueAction(string type, string cibleAction, string? referenceCible, string? detailsAction, int userId)
+        {
+            var action = new HistoriqueAction
+            {
+                Type = type,
+                CibleAction = cibleAction,
+                ReferenceCible = referenceCible,
+                DetailsAction = detailsAction,
+                DateAction = DateTime.UtcNow,
+                UserId = userId
+            };
+
+            _historiqueActionService.Add(action);
         }
 
         // GET: api/VersionRFQ
@@ -166,7 +203,13 @@ namespace EX.UI.Web.Controllers
             }
 
             _versionRFQService.Add(versionRFQ);
-            
+
+            LogHistoriqueAction(
+                "VERSION_CREATED",
+                "VERSION_RFQ",
+                versionRFQ.CQ.ToString(),
+                $"Version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) créée pour la RFQ {versionRFQ.RFQId}.");
+
             // Get the current user's ID and name from JWT claims
                 var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var actionUserName = User.FindFirst("name")?.Value ?? 
@@ -272,7 +315,13 @@ namespace EX.UI.Web.Controllers
             }
 
             _versionRFQService.Update(existingVersionRFQ);
-            
+
+            LogHistoriqueAction(
+                "VERSION_UPDATED",
+                "VERSION_RFQ",
+                existingVersionRFQ.CQ.ToString(),
+                $"Version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) mise à jour.");
+
             // Get the current user's ID and name from JWT claims
               var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
               var actionUserName = User.FindFirst("name")?.Value ?? 
@@ -323,6 +372,12 @@ namespace EX.UI.Web.Controllers
             }
 
             _versionRFQService.Delete(versionRFQ);
+
+            LogHistoriqueAction(
+                "VERSION_DELETED",
+                "VERSION_RFQ",
+                versionRFQ.CQ.ToString(),
+                $"Version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) supprimée.");
             return NoContent();
         }
         // GET: api/VersionRFQ/by-rfq/{rfqId}
@@ -363,6 +418,12 @@ namespace EX.UI.Web.Controllers
             rfq.ApprovalDate = DateTime.UtcNow;
             _versionRFQService.Update(rfq);
 
+            LogHistoriqueAction(
+                "VERSION_VALIDATED",
+                "VERSION_RFQ",
+                rfq.CQ.ToString(),
+                $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) validée.");
+
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
             {
@@ -397,6 +458,12 @@ namespace EX.UI.Web.Controllers
 
             rfq.Rejete = true;
             _versionRFQService.Update(rfq);
+
+            LogHistoriqueAction(
+                "VERSION_REJECTED",
+                "VERSION_RFQ",
+                rfq.CQ.ToString(),
+                $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) rejetée.");
 
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
