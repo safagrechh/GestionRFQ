@@ -1,6 +1,7 @@
 using EX.Core.Domain;
 using EX.Core.Services;
 using EX.UI.Web.Hubs;
+using EX.UI.Web.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,14 +20,16 @@ namespace EX.UI.Web.Controllers
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IHubContext<NotificationHub> _hub;
+        private readonly IActionHistoryLogger _actionHistoryLogger;
 
         public RFQController(IService<RFQ> rfqService , INotificationService notificationService,
-        IEmailService emailService, IHubContext<NotificationHub> hub)
+        IEmailService emailService, IHubContext<NotificationHub> hub, IActionHistoryLogger actionHistoryLogger)
         {
             _rfqService = rfqService;
             _notificationService = notificationService;
             _emailService = emailService;
             _hub = hub;
+            _actionHistoryLogger = actionHistoryLogger;
         }
 
         // Simple DTO for test email requests
@@ -229,6 +232,13 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
+            _actionHistoryLogger.LogAction(
+                "RFQ_CREATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) créée.",
+                User);
+
                 // Get the current user's ID and name from JWT claims
                 var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var actionUserName = User.FindFirst("name")?.Value ?? 
@@ -346,6 +356,13 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Add(rfq);
 
+            _actionHistoryLogger.LogAction(
+                "RFQ_CREATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) créée (validation directe).",
+                User);
+
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
@@ -406,6 +423,13 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Update(rfq);
+
+            _actionHistoryLogger.LogAction(
+                "RFQ_UPDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) mise à jour.",
+                User);
 
             // Get the current user's ID and name from JWT claims
              var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -471,6 +495,13 @@ namespace EX.UI.Web.Controllers
 
             _rfqService.Update(rfq);
 
+            _actionHistoryLogger.LogAction(
+                "RFQ_STATUT_UPDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"Statut de la RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) mis à jour vers {rfq.Statut}.",
+                User);
+
             return Ok(new
             {
                 success = true,
@@ -531,6 +562,14 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Add(rfq);
+
+            var referenceCible = rfq.CQ == 0 ? null : rfq.CQ.ToString();
+            _actionHistoryLogger.LogAction(
+                "RFQ_DRAFT_CREATED",
+                "RFQ",
+                referenceCible,
+                $"Brouillon de RFQ '{rfq.QuoteName}' créé.",
+                User);
             return CreatedAtAction(nameof(Get), new { id = rfq.Id }, rfq);
         }
 
@@ -544,6 +583,13 @@ namespace EX.UI.Web.Controllers
             }
 
             _rfqService.Delete(rfq);
+
+            _actionHistoryLogger.LogAction(
+                "RFQ_DELETED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) supprimée.",
+                User);
             return NoContent();
         }
 
@@ -584,10 +630,17 @@ namespace EX.UI.Web.Controllers
              rfq.Rejete = false;
              rfq.Brouillon = false;
 
-             _rfqService.Update(rfq);
+            _rfqService.Update(rfq);
 
-             return Ok(rfq);
-         }
+            _actionHistoryLogger.LogAction(
+                "RFQ_FINALISED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) finalisée depuis un brouillon.",
+                User);
+
+            return Ok(rfq);
+        }
          
 
         [Authorize(Roles = "Validateur")]
@@ -603,6 +656,13 @@ namespace EX.UI.Web.Controllers
             rfq.Valide = true;
             rfq.ApprovalDate = DateTime.UtcNow;
             _rfqService.Update(rfq);
+
+            _actionHistoryLogger.LogAction(
+                "RFQ_VALIDATED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) validée.",
+                User);
 
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
@@ -633,6 +693,13 @@ namespace EX.UI.Web.Controllers
 
             rfq.Rejete = true;
             _rfqService.Update(rfq);
+
+            _actionHistoryLogger.LogAction(
+                "RFQ_REJECTED",
+                "RFQ",
+                rfq.CQ.ToString(),
+                $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) rejetée.",
+                User);
 
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
