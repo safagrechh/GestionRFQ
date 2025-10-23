@@ -95,6 +95,8 @@ namespace EX.UI.Web.Controllers
         {
             var actions = _historiqueActionService.GetAll().AsEnumerable();
 
+            // Client-based filtering removed per request
+
             if (filter.UserId.HasValue)
             {
                 actions = actions.Where(a => a.UserId == filter.UserId.Value);
