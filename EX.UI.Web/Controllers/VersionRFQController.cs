@@ -177,8 +177,17 @@ namespace EX.UI.Web.Controllers
                 $"Version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) créée pour la RFQ {versionRFQ.RFQId}.",
                 User);
 
-            // Get the current user's ID and name from JWT claims
-                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Get the current user's ID and name from JWT claims (mirror RFQ)
+                string currentUserIdClaim = null;
+                var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+                foreach (var c in nameIdentifierClaims)
+                {
+                    if (int.TryParse(c.Value, out _))
+                    {
+                        currentUserIdClaim = c.Value;
+                        break;
+                    }
+                }
                 var actionUserName = User.FindFirst("name")?.Value ?? 
                                    User.FindFirst(ClaimTypes.Name)?.Value ?? 
                                    User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
@@ -189,7 +198,7 @@ namespace EX.UI.Web.Controllers
 
                 if (isValidateur)
                 {
-                    // If Validateur creates version, notify only the assigned engineer
+                    // If Validateur creates version, notify the assigned engineer
                     if (versionRFQ.IngenieurRFQId.HasValue)
                     {
                         var engineerMessage = $"Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) qui vous est assignée par {actionUserName}.";
@@ -199,6 +208,32 @@ namespace EX.UI.Web.Controllers
                         var engineerEmailSubject = "Nouvelle version RFQ créée";
                         var engineerEmailBody = $"<h3>Nouvelle version créée</h3><p>Une nouvelle version a été créée pour la RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) qui vous est assignée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
                         await _emailService.SendEmailToUserAsync(versionRFQ.IngenieurRFQId.Value, engineerEmailSubject, engineerEmailBody);
+                    }
+
+                    // Notify other validators, excluding the creating validator
+                    var validateurMessage = $"Nouvelle version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) créée par {actionUserName}.";
+                    var validateurEmailSubject = "Nouvelle version RFQ créée";
+                    var validateurEmailBody = $"<h3>Nouvelle version RFQ créée</h3><p>Une nouvelle version RFQ '{versionRFQ.QuoteName}' (CQ: {versionRFQ.CQ}) a été créée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+
+                    if (int.TryParse(currentUserIdClaim, out var creatorId))
+                    {
+                        await _notificationService.CreateNotificationsForRoleExcluding(validateurMessage, "Validateur", versionRFQ.RFQId, actionUserName, creatorId);
+                        await _emailService.SendEmailToRoleExcludingAsync("Validateur", validateurEmailSubject, validateurEmailBody, creatorId);
+                    }
+                    else
+                    {
+                        var creatorEmail = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                        if (!string.IsNullOrWhiteSpace(creatorEmail))
+                        {
+                            await _notificationService.CreateNotificationsForRoleExcludingByEmail(validateurMessage, "Validateur", versionRFQ.RFQId, actionUserName, creatorEmail);
+                            await _emailService.SendEmailToRoleExcludingEmailAsync("Validateur", validateurEmailSubject, validateurEmailBody, creatorEmail);
+                        }
+                        else
+                        {
+                            // Fallback: notify all validators
+                            await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", versionRFQ.RFQId, actionUserName);
+                            await _emailService.SendEmailToRoleAsync("Validateur", validateurEmailSubject, validateurEmailBody);
+                        }
                     }
                 }
                 else
@@ -290,8 +325,17 @@ namespace EX.UI.Web.Controllers
                 $"Version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) mise à jour.",
                 User);
 
-            // Get the current user's ID and name from JWT claims
-              var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Get the current user's ID and name from JWT claims (mirror RFQ)
+              string currentUserIdClaim = null;
+              var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+              foreach (var c in nameIdentifierClaims)
+              {
+                  if (int.TryParse(c.Value, out _))
+                  {
+                      currentUserIdClaim = c.Value;
+                      break;
+                  }
+              }
               var actionUserName = User.FindFirst("name")?.Value ?? 
                                  User.FindFirst(ClaimTypes.Name)?.Value ?? 
                                  User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
@@ -302,7 +346,7 @@ namespace EX.UI.Web.Controllers
 
               if (isValidateur)
               {
-                  // If Validateur updates version, notify only the assigned engineer
+                  // If Validateur updates version, notify the assigned engineer
                   if (existingVersionRFQ.IngenieurRFQId.HasValue)
                   {
                       var engineerMessage = $"La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) qui vous est assignée a été mise à jour par {actionUserName}.";
@@ -312,6 +356,32 @@ namespace EX.UI.Web.Controllers
                       var engineerEmailSubject = "Version RFQ mise à jour";
                       var engineerEmailBody = $"<h3>Version RFQ mise à jour</h3><p>La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) qui vous est assignée a été mise à jour par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
                       await _emailService.SendEmailToUserAsync(existingVersionRFQ.IngenieurRFQId.Value, engineerEmailSubject, engineerEmailBody);
+                  }
+
+                  // Notify other validators, excluding the updating validator
+                  var validateurMessage = $"Version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) mise à jour par {actionUserName}.";
+                  var validateurEmailSubject = "Version RFQ mise à jour";
+                  var validateurEmailBody = $"<h3>Version RFQ mise à jour</h3><p>La version RFQ '{existingVersionRFQ.QuoteName}' (CQ: {existingVersionRFQ.CQ}) a été mise à jour par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+
+                  if (int.TryParse(currentUserIdClaim, out var updaterId))
+                  {
+                      await _notificationService.CreateNotificationsForRoleExcluding(validateurMessage, "Validateur", existingVersionRFQ.RFQId, actionUserName, updaterId);
+                      await _emailService.SendEmailToRoleExcludingAsync("Validateur", validateurEmailSubject, validateurEmailBody, updaterId);
+                  }
+                  else
+                  {
+                      var updaterEmail = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                      if (!string.IsNullOrWhiteSpace(updaterEmail))
+                      {
+                          await _notificationService.CreateNotificationsForRoleExcludingByEmail(validateurMessage, "Validateur", existingVersionRFQ.RFQId, actionUserName, updaterEmail);
+                          await _emailService.SendEmailToRoleExcludingEmailAsync("Validateur", validateurEmailSubject, validateurEmailBody, updaterEmail);
+                      }
+                      else
+                      {
+                          // Fallback: notify all validators
+                          await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", existingVersionRFQ.RFQId, actionUserName);
+                          await _emailService.SendEmailToRoleAsync("Validateur", validateurEmailSubject, validateurEmailBody);
+                      }
                   }
               }
               else
@@ -394,23 +464,57 @@ namespace EX.UI.Web.Controllers
                 $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) validée.",
                 User);
 
+            // Get current user claims (mirror RFQ create/update)
+            string currentUserIdClaim = null;
+            var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+            foreach (var c in nameIdentifierClaims)
+            {
+                if (int.TryParse(c.Value, out _))
+                {
+                    currentUserIdClaim = c.Value;
+                    break;
+                }
+            }
+            var actionUserName = User.FindFirst("name")?.Value ?? 
+                               User.FindFirst(ClaimTypes.Name)?.Value ?? 
+                               User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                               "Utilisateur inconnu";
+
             // Create notification for the RFQ engineer if assigned
             if (rfq.IngenieurRFQId.HasValue)
             {
-                var message = $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée.";
-                
-                // Get the current user's name from JWT claims
-                var actionUserName = User.FindFirst("name")?.Value ?? 
-                                   User.FindFirst(ClaimTypes.Name)?.Value ?? 
-                                   User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
-                                   "Utilisateur inconnu";
-
-                await _notificationService.CreateNotification(message, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
+                var engineerMessage = $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée par {actionUserName}.";
+                await _notificationService.CreateNotification(engineerMessage, rfq.IngenieurRFQId.Value, rfq.RFQId, actionUserName);
                 
                 // Send email to assigned engineer
                 var emailSubject = "Version RFQ validée";
                 var emailBody = $"<h3>Version RFQ validée</h3><p>La version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
                 await _emailService.SendEmailToUserAsync(rfq.IngenieurRFQId.Value, emailSubject, emailBody);
+            }
+
+            // Notify other validators, excluding the validating validator
+            var validateurMessage = $"Version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) validée par {actionUserName}.";
+            var validateurEmailSubject = "Version RFQ validée";
+            var validateurEmailBody = $"<h3>Version RFQ validée</h3><p>La version RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ}) a été validée par {actionUserName}.</p><p>Veuillez vous connecter au système pour plus de détails.</p>";
+
+            if (int.TryParse(currentUserIdClaim, out var validatorId))
+            {
+                await _notificationService.CreateNotificationsForRoleExcluding(validateurMessage, "Validateur", rfq.RFQId, actionUserName, validatorId);
+                await _emailService.SendEmailToRoleExcludingAsync("Validateur", validateurEmailSubject, validateurEmailBody, validatorId);
+            }
+            else
+            {
+                var validatorEmail = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                if (!string.IsNullOrWhiteSpace(validatorEmail))
+                {
+                    await _notificationService.CreateNotificationsForRoleExcludingByEmail(validateurMessage, "Validateur", rfq.RFQId, actionUserName, validatorEmail);
+                    await _emailService.SendEmailToRoleExcludingEmailAsync("Validateur", validateurEmailSubject, validateurEmailBody, validatorEmail);
+                }
+                else
+                {
+                    await _notificationService.CreateNotificationsForRole(validateurMessage, "Validateur", rfq.RFQId, actionUserName);
+                    await _emailService.SendEmailToRoleAsync("Validateur", validateurEmailSubject, validateurEmailBody);
+                }
             }
 
             return Ok(rfq);

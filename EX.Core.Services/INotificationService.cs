@@ -8,6 +8,8 @@ namespace EX.Core.Services
         int GetUnreadCount(int userId);
         Task<Notification> CreateNotification(string message, int userId, int rfqId, string actionUserName);
         Task CreateNotificationsForRole(string message, string role, int rfqId, string actionUserName);
+        Task CreateNotificationsForRoleExcluding(string message, string role, int rfqId, string actionUserName, int excludeUserId);
+        Task CreateNotificationsForRoleExcludingByEmail(string message, string role, int rfqId, string actionUserName, string excludeEmail);
         bool MarkAsRead(int notificationId, int userId);
         bool MarkAllAsRead(int userId);
         bool DeleteNotification(int notificationId, int userId);

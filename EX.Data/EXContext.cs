@@ -1,4 +1,4 @@
-﻿using EX.Core.Domain;
+using EX.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace EX.Data

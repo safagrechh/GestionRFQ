@@ -113,6 +113,62 @@ namespace EX.Core.Services
             }
         }
 
+        public async Task SendEmailToRoleExcludingAsync(string role, string subject, string message, int excludeUserId)
+        {
+            try
+            {
+                _logger.LogInformation($"Starting to send emails to users with role: {role}, excluding user ID: {excludeUserId}");
+                
+                var users = _unitOfWork.GetRepository<User>()
+                    .GetAll().Where(u => u.Role.ToString() == role && u.Id != excludeUserId).ToList();
+
+                _logger.LogInformation($"Found {users.Count} users with role {role} (excluding user {excludeUserId})");
+                
+                foreach (var user in users)
+                {
+                    _logger.LogInformation($"User: {user.NomUser}, Email: {user.Email}, Role: {user.Role}");
+                }
+
+                var emailTasks = users.Select(user => SendEmailAsync(user.Email, subject, message));
+                await Task.WhenAll(emailTasks);
+
+                _logger.LogInformation($"Emails sent to {users.Count} users with role {role} (excluding user {excludeUserId})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to send emails to users with role {role} excluding user {excludeUserId}. Error: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task SendEmailToRoleExcludingEmailAsync(string role, string subject, string message, string excludeEmail)
+        {
+            try
+            {
+                _logger.LogInformation($"Starting to send emails to users with role: {role}, excluding email: {excludeEmail}");
+
+                var users = _unitOfWork.GetRepository<User>()
+                    .GetAll().Where(u => u.Role.ToString() == role && u.Email != excludeEmail).ToList();
+
+                _logger.LogInformation($"Found {users.Count} users with role {role} (excluding email {excludeEmail})");
+
+                foreach (var user in users)
+                {
+                    _logger.LogInformation($"User: {user.NomUser}, Email: {user.Email}, Role: {user.Role}");
+                }
+
+                var emailTasks = users.Select(user => SendEmailAsync(user.Email, subject, message));
+                await Task.WhenAll(emailTasks);
+
+                _logger.LogInformation($"Emails sent to {users.Count} users with role {role} (excluding email {excludeEmail})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to send emails to users with role {role} excluding email {excludeEmail}. Error: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task SendEmailToUserAsync(int userId, string subject, string message)
         {
             try

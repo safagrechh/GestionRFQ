@@ -135,5 +135,67 @@ namespace EX.Core.Services
             _unitOfWork.Save();
         }
 
+        public async Task CreateNotificationsForRoleExcluding(string message, string role, int rfqId, string actionUserName, int excludeUserId)
+        {
+            var userRepository = _unitOfWork.GetRepository<User>();
+            var notificationRepository = _unitOfWork.GetRepository<Notification>();
+            
+            // Get all users with the specified role, excluding the specified user
+            var users = userRepository.GetAll()
+                .Where(u => u.Role.ToString() == role && u.Id != excludeUserId)
+                .ToList();
+
+            foreach (var user in users)
+            {
+                var notification = new Notification
+                {
+                    Message = message,
+                    UserId = user.Id,
+                    RFQId = rfqId,
+                    ActionUserName = actionUserName,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                notificationRepository.Add(notification);
+                
+                // Send real-time notification
+                await _realTimeService.SendNotificationAsync(user.Id, notification);
+            }
+
+            _unitOfWork.Save();
+        }
+
+        public async Task CreateNotificationsForRoleExcludingByEmail(string message, string role, int rfqId, string actionUserName, string excludeEmail)
+        {
+            var userRepository = _unitOfWork.GetRepository<User>();
+            var notificationRepository = _unitOfWork.GetRepository<Notification>();
+
+            // Get all users with the specified role, excluding the specified email
+            var users = userRepository.GetAll()
+                .Where(u => u.Role.ToString() == role && u.Email != excludeEmail)
+                .ToList();
+
+            foreach (var user in users)
+            {
+                var notification = new Notification
+                {
+                    Message = message,
+                    UserId = user.Id,
+                    RFQId = rfqId,
+                    ActionUserName = actionUserName,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                notificationRepository.Add(notification);
+
+                // Send real-time notification
+                await _realTimeService.SendNotificationAsync(user.Id, notification);
+            }
+
+            _unitOfWork.Save();
+        }
+
     }
 }

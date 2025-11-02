@@ -56,6 +56,9 @@ builder.Services.AddScoped<IRealTimeNotificationService, RealTimeNotificationSer
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IActionHistoryLogger, ActionHistoryLogger>();
+// Google AI (Gemini)
+builder.Services.Configure<GoogleAIOptions>(builder.Configuration.GetSection("GoogleAI"));
+builder.Services.AddSingleton<IGenerativeAiClient, GeminiAiClient>();
 
 // ----- JWT Auth (with SignalR support) -----
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

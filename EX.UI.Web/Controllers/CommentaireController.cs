@@ -152,6 +152,10 @@ namespace EX.UI.Web.Controllers
                                    "Utilisateur inconnu";
 
                 await _notificationService.CreateNotification(message, engineerId.Value, rfqId, actionUserName);
+
+                // Also notify other Validateurs (excluding the commenting Validateur)
+                var validateurMessage = $"Nouveau commentaire ajouté à {entityName} par {actionUserName}.";
+                await _notificationService.CreateNotificationsForRoleExcluding(validateurMessage, "Validateur", rfqId, actionUserName, validateurId);
             }
 
             return CreatedAtAction(nameof(Get), new { id = commentaire.Id }, commentaire);
@@ -218,6 +222,38 @@ namespace EX.UI.Web.Controllers
                 referenceCible,
                 $"Commentaire mis à jour sur {entityDescription}.",
                 validateurId);
+
+            // Notify assigned engineer and other validators (excluding the commenting validator)
+            int? engineerId = null;
+            int rfqId = 0;
+            string entityName = "";
+
+            if (rfq != null)
+            {
+                engineerId = rfq.IngenieurRFQId;
+                rfqId = rfq.Id;
+                entityName = $"RFQ '{rfq.QuoteName}' (CQ: {rfq.CQ})";
+            }
+            else if (version != null)
+            {
+                engineerId = version.IngenieurRFQId;
+                rfqId = version.RFQId;
+                entityName = $"Version RFQ '{version.QuoteName}' (CQ: {version.CQ})";
+            }
+
+            var actionUserName = User.FindFirst("name")?.Value ??
+                               User.FindFirst(ClaimTypes.Name)?.Value ??
+                               User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+                               "Utilisateur inconnu";
+
+            if (engineerId.HasValue)
+            {
+                var engineerMessage = $"Commentaire mis à jour sur {entityName} par {actionUserName}.";
+                _notificationService.CreateNotification(engineerMessage, engineerId.Value, rfqId, actionUserName);
+            }
+
+            var validateurMessage = $"Commentaire mis à jour sur {entityName} par {actionUserName}.";
+            _notificationService.CreateNotificationsForRoleExcluding(validateurMessage, "Validateur", rfqId, actionUserName, validateurId);
 
             return Ok(commentaire);
         }

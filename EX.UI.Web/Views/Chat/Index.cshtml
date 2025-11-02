@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Assistant conversationnel";
+}
+
+<div class="container mt-4">
+    <h2>Assistant conversationnel</h2>
+    <p class="text-muted">Posez vos questions (ex: "Où en est la validation de RFQ #123 ?")</p>
+
+    <div id="chat" class="border rounded p-3" style="min-height: 240px; max-height: 420px; overflow-y: auto;"></div>
+
+    <div class="input-group mt-3">
+        <input id="msg" class="form-control" placeholder="Votre message..." />
+        <button id="send" class="btn btn-primary">Envoyer</button>
+    </div>
+</div>
+
+<script>
+    const chat = document.getElementById('chat');
+    const msg = document.getElementById('msg');
+    const send = document.getElementById('send');
+
+    function addBubble(text, who) {
+        const div = document.createElement('div');
+        div.className = `my-2 p-2 rounded ${who === 'user' ? 'bg-light' : 'bg-info text-white'}`;
+        div.textContent = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    send.addEventListener('click', async () => {
+        const text = msg.value.trim();
+        if (!text) return;
+        addBubble(text, 'user');
+        msg.value = '';
+        try {
+            const res = await fetch('/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                addBubble(data.error || 'Erreur du service', 'bot');
+            } else {
+                addBubble(data.reply, 'bot');
+            }
+        } catch (e) {
+            addBubble('Erreur réseau. Réessayez plus tard.', 'bot');
+        }
+    });
+
+    msg.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            send.click();
+        }
+    });
+</script>
