@@ -86,7 +86,8 @@ namespace EX.UI.Web.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<RFQDetailsDto>> GetAll()
         {
-            var rfqs = _rfqService.GetAll();
+            // Exclude drafts from the "All" listing
+            var rfqs = _rfqService.GetAll().Where(r => r.Brouillon != true);
             var rfqDtos = rfqs.Select(r => new RFQDetailsDto
             {   Id = r.Id , 
                 CQ = r.CQ,
@@ -123,6 +124,68 @@ namespace EX.UI.Web.Controllers
                 CreatedByUser = r.CreatedByUser?.NomUser
 
 
+            }).ToList();
+
+            return Ok(rfqDtos);
+        }
+
+        [Authorize(Roles = "IngenieurRFQ")]
+        [HttpGet("my-assigned")]
+        public ActionResult<IEnumerable<RFQDetailsDto>> GetMyAssigned()
+        {
+            // Resolve current engineer's numeric user ID from claims
+            string currentUserIdClaim = null;
+            var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+            foreach (var c in nameIdentifierClaims)
+            {
+                if (int.TryParse(c.Value, out _))
+                {
+                    currentUserIdClaim = c.Value;
+                    break;
+                }
+            }
+
+            if (!int.TryParse(currentUserIdClaim, out var engineerId))
+            {
+                return Unauthorized(new { error = "Impossible de déterminer l'identifiant de l'utilisateur." });
+            }
+
+            var rfqs = _rfqService.GetAll().Where(r => r.IngenieurRFQId == engineerId);
+            var rfqDtos = rfqs.Select(r => new RFQDetailsDto
+            {
+                Id = r.Id,
+                CQ = r.CQ,
+                QuoteName = r.QuoteName,
+                NumRefQuoted = r.NumRefQuoted,
+                SOPDate = r.SOPDate,
+                MaxV = r.MaxV,
+                EstV = r.EstV,
+                KODate = r.KODate,
+                CustomerDataDate = r.CustomerDataDate,
+                MDDate = r.MDDate,
+                MRDate = r.MRDate,
+                TDDate = r.TDDate,
+                TRDate = r.TRDate,
+                LDDate = r.LDDate,
+                LRDate = r.LRDate,
+                CDDate = r.CDDate,
+                ApprovalDate = r.ApprovalDate,
+                DateCreation = r.DateCreation,
+                Statut = r.Statut,
+                MaterialLeader = r.MaterialLeader?.Nom,
+                TestLeader = r.TestLeader?.Nom,
+                MarketSegment = r.MarketSegment?.Nom,
+                IngenieurRFQ = r.IngenieurRFQ?.NomUser,
+                VALeader = r.VALeader?.NomUser,
+                Client = r.Client?.Nom,
+                Valide = r.Valide,
+                Rejete = r.Rejete,
+                Brouillon = r.Brouillon,
+                FileName = r.FileName,
+                FileContentType = r.FileContentType,
+                VersionsCount = r.Versions?.Count ?? 0,
+                CreatedByUserId = r.CreatedByUserId,
+                CreatedByUser = r.CreatedByUser?.NomUser
             }).ToList();
 
             return Ok(rfqDtos);
@@ -429,6 +492,25 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
+            // Engineers can only manage RFQs assigned to them
+            if (User.IsInRole("IngenieurRFQ"))
+            {
+                string engineerUserIdClaim = null;
+                var engineerNameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+                foreach (var c in engineerNameIdentifierClaims)
+                {
+                    if (int.TryParse(c.Value, out _))
+                    {
+                        engineerUserIdClaim = c.Value;
+                        break;
+                    }
+                }
+                if (!int.TryParse(engineerUserIdClaim, out var engineerUserId) || rfq.IngenieurRFQId != engineerUserId)
+                {
+                    return StatusCode(403, new { error = "Vous ne pouvez gérer que les RFQ qui vous sont assignées." });
+                }
+            }
+
             // Skip validation if Brouillon is true
             if (dto.Brouillon == true)
             {
@@ -564,6 +646,25 @@ namespace EX.UI.Web.Controllers
                 return NotFound();
             }
 
+            // Engineers can only update statut for RFQs assigned to them
+            if (User.IsInRole("IngenieurRFQ"))
+            {
+                string currentUserIdClaim = null;
+                var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+                foreach (var c in nameIdentifierClaims)
+                {
+                    if (int.TryParse(c.Value, out _))
+                    {
+                        currentUserIdClaim = c.Value;
+                        break;
+                    }
+                }
+                if (!int.TryParse(currentUserIdClaim, out var currentUserId) || rfq.IngenieurRFQId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Vous ne pouvez gérer que les RFQ qui vous sont assignées." });
+                }
+            }
+
             // Validate the statut value
             if (!Enum.IsDefined(typeof(Statut), dto.Statut))
             {
@@ -681,6 +782,25 @@ namespace EX.UI.Web.Controllers
              if (rfq == null)
              {
                  return NotFound();
+             }
+
+             // Engineers can only finalise RFQs assigned to them
+             if (User.IsInRole("IngenieurRFQ"))
+             {
+                 string currentUserIdClaim = null;
+                 var nameIdentifierClaims = User.FindAll(ClaimTypes.NameIdentifier);
+                 foreach (var c in nameIdentifierClaims)
+                 {
+                     if (int.TryParse(c.Value, out _))
+                     {
+                         currentUserIdClaim = c.Value;
+                         break;
+                     }
+                 }
+                 if (!int.TryParse(currentUserIdClaim, out var currentUserId) || rfq.IngenieurRFQId != currentUserId)
+                 {
+                     return StatusCode(403, new { error = "Vous ne pouvez gérer que les RFQ qui vous sont assignées." });
+                 }
              }
 
              rfq.CQ = dto.CQ ?? rfq.CQ;

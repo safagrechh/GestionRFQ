@@ -20,3 +20,115 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Toolbar sizing and states */
+.toolbar,
+.sort-control {
+  --toolbar-height: 40px; /* adjust globally for controls height */
+}
+
+.toolbar .form-control,
+.toolbar .btn,
+.toolbar .input-group .form-control,
+.toolbar .input-group .btn,
+.toolbar .input-group .input-group-text {
+  height: var(--toolbar-height);
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: calc(var(--toolbar-height) - 2px);
+}
+
+/* Filter/segment buttons: shaded idle, colored active */
+.btn-filter {
+  color: #343a40;
+  background-color: #f1f3f5;
+  border-color: #dee2e6;
+}
+.btn-filter:hover {
+  background-color: #e9ecef;
+}
+.btn-filter.active,
+.btn-filter[aria-pressed="true"] {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0a58ca;
+}
+
+/* Sort control: tidy proportions for label, select, and order buttons */
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sort-control .sort-label {
+  margin: 0;
+  font-weight: 500;
+}
+.sort-control .form-select {
+  height: var(--toolbar-height);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.sort-order-btn {
+  height: var(--toolbar-height);
+  width: var(--toolbar-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+.sort-order-btn:hover {
+  background-color: #e9ecef;
+}
+.sort-order-btn.active,
+.sort-order-btn[aria-pressed="true"] {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0a58ca;
+}
+
+/* Filter button borders: make middle buttons square and ends flat */
+.btn-filter-all {
+  /* Left side rounded, right side flat */
+  --btn-end-radius: .5rem;
+  border-top-left-radius: var(--btn-end-radius);
+  border-bottom-left-radius: var(--btn-end-radius);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.btn-filter-pending,
+.btn-filter-validated {
+  border-radius: 0;
+}
+.btn-filter-draft {
+  /* Left side flat, right side rounded */
+  --btn-end-radius: .5rem;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: var(--btn-end-radius);
+  border-bottom-right-radius: var(--btn-end-radius);
+}
+
+/* Refined filter colors */
+.btn-filter {
+  --filter-idle-bg: #eef2f6;
+  --filter-idle-border: #d0d7de;
+  --filter-idle-text: #2f3b47;
+  --filter-active-bg: #0d6efd;
+  --filter-active-border: #0a58ca;
+  --filter-active-text: #ffffff;
+  color: var(--filter-idle-text);
+  background-color: var(--filter-idle-bg);
+  border-color: var(--filter-idle-border);
+}
+.btn-filter:hover {
+  background-color: #e6ebf1;
+}
+.btn-filter.active,
+.btn-filter[aria-pressed="true"] {
+  color: var(--filter-active-text);
+  background-color: var(--filter-active-bg);
+  border-color: var(--filter-active-border);
+}
